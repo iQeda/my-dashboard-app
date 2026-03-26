@@ -111,6 +111,11 @@ const translations = {
   "add_to_favorites": { en: "Add to favorites", ja: "お気に入りに追加" },
   "remove_from_favorites": { en: "Remove from favorites", ja: "お気に入りから削除" },
 
+  // Pin
+  "pin": { en: "Pin", ja: "ピン留め" },
+  "unpin": { en: "Unpin", ja: "ピン解除" },
+  "pinned": { en: "Pinned", ja: "ピン留め" },
+
   // Toolbar
   "toolbar_display": { en: "Display", ja: "表示" },
   "toolbar_filter": { en: "Filter", ja: "フィルター" },

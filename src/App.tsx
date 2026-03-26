@@ -508,8 +508,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             onLaunchItem={launchAndRecord}
             onEdit={handleEdit}
             onToggleFavorite={toggleFavorite}
-            onDuplicate={duplicateItem}
-            onDelete={deleteItem}
+            onToggleCategoryPin={(id) => { const cat = (config.categoryList ?? []).find((c) => c.id === id); if (cat) updateCategoryDef(id, { pinned: !cat.pinned }); }}
+            onToggleTagPin={(id) => { const tag = config.tagDefs.find((t) => t.id === id); if (tag) updateTagDef(id, { pinned: !tag.pinned }); }}
           />
         ) : (
           <>

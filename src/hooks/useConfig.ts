@@ -135,7 +135,7 @@ export function useConfig() {
   );
 
   const updateTagDef = useCallback(
-    async (id: string, updates: Partial<Pick<TagDef, "label" | "color">>) => {
+    async (id: string, updates: Partial<Pick<TagDef, "label" | "color" | "pinned">>) => {
       const current = configRef.current;
       if (!current) return;
       const newConfig: AppConfig = {
@@ -167,7 +167,7 @@ export function useConfig() {
   );
 
   const updateCategoryDef = useCallback(
-    async (id: string, updates: Partial<Pick<Category, "label">>) => {
+    async (id: string, updates: Partial<Pick<Category, "label" | "pinned">>) => {
       const current = configRef.current;
       if (!current) return;
       const newConfig: AppConfig = {

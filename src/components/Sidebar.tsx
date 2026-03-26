@@ -18,9 +18,9 @@ interface SidebarProps {
   readonly onShowAllItems: () => void;
   readonly onToggleFavoritesFilter: () => void;
   readonly onReorderTagDefs: (tagDefs: readonly TagDef[]) => void;
-  readonly onUpdateTagDef: (id: string, updates: Partial<Pick<TagDef, "label" | "color">>) => void;
+  readonly onUpdateTagDef: (id: string, updates: Partial<Pick<TagDef, "label" | "color" | "pinned">>) => void;
   readonly onDeleteTagDef: (id: string) => void;
-  readonly onUpdateCategoryDef: (id: string, updates: Partial<Pick<Category, "label">>) => void;
+  readonly onUpdateCategoryDef: (id: string, updates: Partial<Pick<Category, "label" | "pinned">>) => void;
   readonly onDeleteCategoryDef: (id: string) => void;
   readonly onReorderCategoryList: (list: readonly Category[]) => void;
   readonly initialCategoriesOpen: boolean;
@@ -44,12 +44,16 @@ type EditPanelState =
 
 function SidebarContextMenu({
   state,
+  isPinned,
+  onTogglePin,
   onRename,
   onChangeColor,
   onDelete,
   onClose,
 }: {
   state: NonNullable<CtxMenuState>;
+  isPinned: boolean;
+  onTogglePin: () => void;
   onRename: () => void;
   onChangeColor?: () => void;
   onDelete: () => void;
@@ -83,6 +87,14 @@ function SidebarContextMenu({
 
   return createPortal(
     <div ref={ref} style={{ position: "fixed", top: state.y, left: state.x }} className="z-[100] w-44 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-xl">
+      <button onClick={() => { onTogglePin(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {isPinned
+            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V5zm7 10v6m-3 0h6" />}
+        </svg>
+        {isPinned ? t("unpin") : t("pin")}
+      </button>
       <button onClick={() => { onRename(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
         {t("rename")}
@@ -343,6 +355,36 @@ export function Sidebar({
         <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{items.filter((i) => i.favorite).length}</span>
       </button>
 
+      {/* Pinned */}
+      {(categoryList.some((c) => c.pinned) || tagDefs.some((t) => t.pinned)) && (
+        <>
+          <div className="border-t border-gray-200 dark:border-white/10 my-1" />
+          <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1 -mx-1 py-0.5">{t("pinned")}</span>
+          {categoryList.filter((c) => c.pinned).map((cat) => (
+            <button key={cat.id} onClick={() => onToggleCategory(cat.id)}
+              onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ kind: "category", cat, x: e.clientX, y: e.clientY }); }}
+              className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                selectedCategory === cat.id ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+              }`}>
+              <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+              <span className="flex-1 truncate">{cat.label}</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{catCounts.get(cat.id) ?? 0}</span>
+            </button>
+          ))}
+          {tagDefs.filter((t) => t.pinned).map((tag) => (
+            <button key={tag.id} onClick={() => onToggleTag(tag.id)}
+              onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ kind: "tag", tag, x: e.clientX, y: e.clientY }); }}
+              className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                selectedTags.has(tag.id) ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+              }`}>
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+              <span className="flex-1 truncate">{tag.label}</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{tagCounts.get(tag.id) ?? 0}</span>
+            </button>
+          ))}
+        </>
+      )}
+
       {/* Categories */}
       {categoryList.length > 0 && (
         <>
@@ -360,6 +402,7 @@ export function Sidebar({
           </button>
           {/* eslint-disable-next-line react-hooks/refs */}
           {categoriesOpen && categoryList.map((cat, i) => {
+            if (cat.pinned) return null;
             if (editPanel?.kind === "rename-cat" && editPanel.cat.id === cat.id) {
               return <InlineRename key={cat.id} value={cat.label} onSave={(v) => { onUpdateCategoryDef(cat.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
             }
@@ -374,7 +417,7 @@ export function Sidebar({
                 className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors select-none cursor-grab active:cursor-grabbing ${
                   selectedCategory === cat.id ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
                 } ${catIsDragging.current && catDragIndex === i ? "opacity-40" : ""} ${catIsDragging.current && catOverIndex === i && catDragIndex !== i ? "ring-2 ring-purple-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
-                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                 <span className="flex-1 truncate">{cat.label}</span>
                 <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{catCounts.get(cat.id) ?? 0}</span>
               </div>
@@ -411,6 +454,7 @@ export function Sidebar({
 
       {/* eslint-disable-next-line react-hooks/refs */}
       {tagsOpen && tagDefs.map((tag, i) => {
+        if (tag.pinned) return null;
         if (editPanel?.kind === "rename-tag" && editPanel.tag.id === tag.id) {
           return <InlineRename key={tag.id} value={tag.label} onSave={(v) => { onUpdateTagDef(tag.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
         }
@@ -448,6 +492,11 @@ export function Sidebar({
       {ctxMenu && (
         <SidebarContextMenu
           state={ctxMenu}
+          isPinned={ctxMenu.kind === "tag" ? !!ctxMenu.tag.pinned : !!ctxMenu.cat.pinned}
+          onTogglePin={() => {
+            if (ctxMenu.kind === "tag") onUpdateTagDef(ctxMenu.tag.id, { pinned: !ctxMenu.tag.pinned });
+            else onUpdateCategoryDef(ctxMenu.cat.id, { pinned: !ctxMenu.cat.pinned });
+          }}
           onRename={() => {
             if (ctxMenu.kind === "tag") setEditPanel({ kind: "rename-tag", tag: ctxMenu.tag });
             else setEditPanel({ kind: "rename-cat", cat: ctxMenu.cat });

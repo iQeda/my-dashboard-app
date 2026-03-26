@@ -85,7 +85,7 @@ GitHub Secrets（リリースに必要）:
   - focusedIndex, setFocusedIndex, focusedItem, moveFocus, resetFocus
   - `displayItems`（カテゴリグループ順）を入力として使用し、表示順と一致
   - `enabled` が false または items が変わるとフォーカスリセット
-- `DashboardOverview.tsx` - Dashboard ページ。Favorites（ItemCard S）、Categories、Tags（件数付き）、Recent items（ItemCard S、最大20件）を表示
+- `DashboardOverview.tsx` - Dashboard ページ。Favorites（ItemCard S、Edit/Favorite のみ）、Pinned（ピン留めカテゴリ・タグ）、Categories、Tags（件数付き）、Recent items（ItemCard S）を表示。カテゴリ・タグカードは右クリックで Pin/Unpin 操作可能
 - ItemCard/ItemRow は `invoke` を直接呼ばず、親から `onLaunch`/`onSelect` コールバックを受け取る設計
   - シングルクリック → `onSelect`（フォーカス）、ダブルクリック → `onLaunch`（起動）
   - `isFocused` prop でフォーカス状態のリングハイライト表示
@@ -101,7 +101,9 @@ GitHub Secrets（リリースに必要）:
 - `ShortcutHelper.tsx` - キーボードショートカット一覧。画面右下固定、ポップオーバーは上方向に展開
 - `SearchBar.tsx` - 検索入力のみ（コントロールボタンは ToolbarControls に分離）
 - `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移
-- `Sidebar.tsx` - カテゴリ・タグ・All Items・Favorites に件数表示。`items` prop から `useMemo` で集計
+- `Sidebar.tsx` - カテゴリ・タグ・All Items・Favorites に件数表示。`items` prop から `useMemo` で集計。ピン留めセクション（Pinned）を Favorites の下に表示、ピン留め済みは Categories/Tags セクションから非表示
+- `ContextMenu.tsx` - アイテム右クリックメニュー。`onDuplicate`/`onDelete` はオプショナル（Dashboard では非表示）
+- `SettingsModal.tsx` - About のバージョン表示を `@tauri-apps/api/app` の `getVersion()` で動的取得
 - コンポーネントは全て props ベースの named export 関数コンポーネント
 
 ### Data Flow
@@ -116,8 +118,8 @@ Switch: Rust switch_config → config.json を上書き → reload
 
 ### Type System
 
-- `TagDef` (id, label, color) - タグ定義。旧名 `Category`（リネーム済み）
-- `Category` (id, label) - カテゴリ定義。アイテムに1つだけ設定可能
+- `TagDef` (id, label, color, pinned?) - タグ定義。旧名 `Category`（リネーム済み）。`pinned` でピン留め
+- `Category` (id, label, pinned?) - カテゴリ定義。アイテムに1つだけ設定可能。`pinned` でピン留め
 - `DashboardItem` - id, name, type, target, tags[], icon?, favorite?, category?, description?
 - `RecentAccessEntry` - id, at (Unix timestamp ms via `Date.now()`)
 - `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?, sidebarCategoriesOpen?, sidebarTagsOpen?, combinedFilter?, multiTagMode?
@@ -156,6 +158,10 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **ShortcutHelper 右下固定**: ツールバーから分離し、全ページで画面右下に固定表示。ポップオーバーは上方向に展開
 - **サイドバー件数表示**: All Items / Favorites / 各カテゴリ / 各タグの横に件数を `useMemo` で集計・表示
 - **カテゴリセパレータークリック可能**: Dashboard のカテゴリグループ見出しをクリックでカテゴリフィルター適用（Uncategorized は対象外）
+- **Pin 機能**: カテゴリ・タグに `pinned` フィールド。右クリックメニューで Pin/Unpin。ピン留め済みはサイドバー上部・Dashboard 上部の Pinned セクションに表示、元の Categories/Tags セクションからは非表示
+- **Dashboard のコンテキストメニュー簡略化**: ItemCard は Edit / Favorite のみ（Duplicate / Delete 非表示）。カテゴリ・タグカードは Pin/Unpin のみ
+- **Settings バージョン動的取得**: `getVersion()` で `tauri.conf.json` の version を自動反映（ハードコード廃止）
+- **Dashboard カードスタイル統一**: カテゴリ・タグカードは同一サイズ・同一ホバー（青ボーダー + scale アニメーション）。カテゴリフォルダアイコンは紫で統一
 
 ## Keyboard Shortcuts
 

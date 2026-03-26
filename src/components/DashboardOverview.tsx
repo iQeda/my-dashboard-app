@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../types";
 import { ItemCard } from "./ItemCard";
 import { useI18n } from "../i18n";
@@ -13,23 +15,58 @@ interface DashboardOverviewProps {
   readonly onLaunchItem: (item: DashboardItem) => void;
   readonly onEdit: (item: DashboardItem) => void;
   readonly onToggleFavorite: (id: string) => void;
-  readonly onDuplicate: (id: string) => void;
-  readonly onDelete: (id: string) => void;
+  readonly onToggleCategoryPin?: (id: string) => void;
+  readonly onToggleTagPin?: (id: string) => void;
 }
 
-export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, onSelectTag, onSelectCategory, onSelectFavorites, onLaunchItem, onEdit, onToggleFavorite, onDuplicate, onDelete }: DashboardOverviewProps) {
+type PinMenuState = { readonly kind: "category" | "tag"; readonly id: string; readonly pinned: boolean; readonly x: number; readonly y: number } | null;
+
+function PinContextMenu({ state, onToggle, onClose }: { readonly state: NonNullable<PinMenuState>; readonly onToggle: () => void; readonly onClose: () => void }) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handle = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [onClose]);
+  useEffect(() => {
+    const handle = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
+  }, [onClose]);
+
+  return createPortal(
+    <div ref={ref} style={{ position: "fixed", top: state.y, left: state.x }} className="z-[100] w-36 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-xl">
+      <button onClick={() => { onToggle(); onClose(); }} className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer">
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {state.pinned
+            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V5zm7 10v6m-3 0h6" />}
+        </svg>
+        {state.pinned ? t("unpin") : t("pin")}
+      </button>
+    </div>,
+    document.body,
+  );
+}
+
+export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, onSelectTag, onSelectCategory, onSelectFavorites, onLaunchItem, onEdit, onToggleFavorite, onToggleCategoryPin, onToggleTagPin }: DashboardOverviewProps) {
   const { t } = useI18n();
 
-  const categorizedGroups = categoryList.map((cat) => ({
+  const unpinnedCategories = categoryList.filter((c) => !c.pinned);
+  const categorizedGroups = unpinnedCategories.map((cat) => ({
     category: cat,
     count: items.filter((i) => i.category === cat.id).length,
   }));
   const uncategorizedCount = items.filter((i) => !i.category).length;
 
-  const tagGroups = tagDefs.map((tag) => ({
+  const unpinnedTags = tagDefs.filter((t) => !t.pinned);
+  const tagGroups = unpinnedTags.map((tag) => ({
     tag,
     count: items.filter((i) => i.tags.includes(tag.id)).length,
   }));
+
+  const [pinMenu, setPinMenu] = useState<PinMenuState>(null);
 
   const favoriteItems = items.filter((i) => i.favorite);
 
@@ -67,12 +104,45 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 cardSize="sm"
                 onEdit={onEdit}
                 onToggleFavorite={onToggleFavorite}
-                onDuplicate={onDuplicate}
-                onDelete={onDelete}
                 onLaunch={onLaunchItem}
                 onToggleTag={onSelectTag}
               />
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Pinned */}
+      {(categoryList.some((c) => c.pinned) || tagDefs.some((t) => t.pinned)) && (
+        <section className="mb-8">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
+            {t("pinned")}
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {categoryList.filter((c) => c.pinned).map((cat) => {
+              const count = items.filter((i) => i.category === cat.id).length;
+              return (
+                <button key={cat.id} onClick={() => onSelectCategory(cat.id)}
+                  onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: cat.id, pinned: true, x: e.clientX, y: e.clientY }); }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer">
+                  <svg className="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{cat.label}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
+                </button>
+              );
+            })}
+            {tagDefs.filter((t) => t.pinned).map((tag) => {
+              const count = items.filter((i) => i.tags.includes(tag.id)).length;
+              return (
+                <button key={tag.id} onClick={() => onSelectTag(tag.id)}
+                  onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "tag", id: tag.id, pinned: true, x: e.clientX, y: e.clientY }); }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{tag.label}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
       )}
@@ -88,7 +158,8 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
               <button
                 key={category.id}
                 onClick={() => onSelectCategory(category.id)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500/40 transition-all cursor-pointer"
+                onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: category.id, pinned: false, x: e.clientX, y: e.clientY }); }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
               >
                 <svg className="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -101,7 +172,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
             {uncategorizedCount > 0 && (
               <button
                 onClick={() => onSelectCategory("")}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-500/40 transition-all cursor-pointer"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
               >
                 <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
@@ -119,16 +190,17 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
         <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
           {t("tags")}
         </h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {tagGroups.map(({ tag, count }) => (
             <button
               key={tag.id}
               onClick={() => onSelectTag(tag.id)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
+              onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "tag", id: tag.id, pinned: false, x: e.clientX, y: e.clientY }); }}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
             >
               <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{tag.label}</span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">{count}</span>
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{tag.label}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
             </button>
           ))}
         </div>
@@ -149,14 +221,23 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 cardSize="sm"
                 onEdit={onEdit}
                 onToggleFavorite={onToggleFavorite}
-                onDuplicate={onDuplicate}
-                onDelete={onDelete}
                 onLaunch={onLaunchItem}
                 onToggleTag={onSelectTag}
               />
             ))}
           </div>
         </section>
+      )}
+
+      {pinMenu && (
+        <PinContextMenu
+          state={pinMenu}
+          onToggle={() => {
+            if (pinMenu.kind === "category") onToggleCategoryPin?.(pinMenu.id);
+            else onToggleTagPin?.(pinMenu.id);
+          }}
+          onClose={() => setPinMenu(null)}
+        />
       )}
     </div>
   );
