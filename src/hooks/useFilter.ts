@@ -120,6 +120,8 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
     cycleTypeFilter,
     setSearchQuery,
     cycleSortOrder,
+    setSortOrder,
+    setTypeFilter,
     clearFilters,
   };
 }

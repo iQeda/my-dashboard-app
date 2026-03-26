@@ -110,6 +110,35 @@ const translations = {
   // ItemCard
   "add_to_favorites": { en: "Add to favorites", ja: "お気に入りに追加" },
   "remove_from_favorites": { en: "Remove from favorites", ja: "お気に入りから削除" },
+
+  // Toolbar
+  "toolbar_display": { en: "Display", ja: "表示" },
+  "toolbar_filter": { en: "Filter", ja: "フィルター" },
+  "toolbar_sort": { en: "Sort", ja: "ソート" },
+  "view_card": { en: "Card view", ja: "カード表示" },
+  "view_list": { en: "List view", ja: "リスト表示" },
+  "card_size": { en: "Card size", ja: "カードサイズ" },
+
+  // Keyboard Shortcuts
+  "keyboard_shortcuts": { en: "Keyboard Shortcuts", ja: "キーボードショートカット" },
+  "shortcut_nav": { en: "Navigation", ja: "ナビゲーション" },
+  "shortcut_items": { en: "Item List", ja: "アイテムリスト" },
+  "shortcut_actions": { en: "Actions", ja: "操作" },
+  "shortcut_search": { en: "Focus search", ja: "検索にフォーカス" },
+  "shortcut_dashboard": { en: "Go to Dashboard", ja: "ダッシュボードへ" },
+  "shortcut_cmd_palette": { en: "Command palette", ja: "コマンドパレット" },
+  "shortcut_settings": { en: "Settings", ja: "設定" },
+  "shortcut_escape": { en: "Close / Clear filters", ja: "閉じる / フィルター解除" },
+  "shortcut_arrow": { en: "Move focus", ja: "フォーカス移動" },
+  "shortcut_arrow_from_search": { en: "Move to list from search", ja: "検索からリストへ移動" },
+  "shortcut_enter": { en: "Launch item", ja: "アイテムを起動" },
+  "shortcut_click": { en: "Select item", ja: "アイテムを選択" },
+  "shortcut_dblclick": { en: "Launch item", ja: "アイテムを起動" },
+  "shortcut_new": { en: "New item", ja: "新規アイテム" },
+  "shortcut_edit": { en: "Edit focused item", ja: "選択中アイテムを編集" },
+  "shortcut_favorite": { en: "Toggle favorite", ja: "お気に入りトグル" },
+  "shortcut_launch": { en: "Launch focused item", ja: "選択中アイテムを起動" },
+  "shortcut_open_all": { en: "Open all filtered", ja: "フィルター結果をすべて開く" },
 } as const;
 
 type TranslationKey = keyof typeof translations;

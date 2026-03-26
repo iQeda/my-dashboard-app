@@ -11,7 +11,9 @@ interface ItemRowProps {
   readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
+  readonly onSelect?: (item: DashboardItem) => void;
   readonly onToggleTag?: (tagId: string) => void;
+  readonly isFocused?: boolean;
 }
 
 const DEFAULT_ICONS: Record<string, string> = {
@@ -19,11 +21,12 @@ const DEFAULT_ICONS: Record<string, string> = {
   url: "\uD83C\uDF10",
 };
 
-export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag }: ItemRowProps) {
+export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, isFocused }: ItemRowProps) {
   const { t } = useI18n();
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
 
-  const handleClick = () => { onLaunch(item); };
+  const handleClick = () => { onSelect?.(item); };
+  const handleDoubleClick = () => { onLaunch(item); };
 
   const tagColors = item.tags
     .map((tag) => tagDefs.find((c) => c.id === tag))
@@ -35,7 +38,8 @@ export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, 
         e.preventDefault();
         setCtx({ x: e.clientX, y: e.clientY });
       }}
-      className="group flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/70 dark:hover:bg-white/5 transition-colors"
+      data-focused={isFocused || undefined}
+      className={`group flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/70 dark:hover:bg-white/5 transition-colors ${isFocused ? "bg-blue-50/70 dark:bg-blue-900/20 ring-1 ring-blue-500/40" : ""}`}
     >
       <button
         onClick={(e) => {
@@ -53,7 +57,7 @@ export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, 
         </svg>
       </button>
 
-      <button onClick={handleClick} className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+      <button onClick={handleClick} onDoubleClick={handleDoubleClick} className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
         <span className="text-xl shrink-0">{item.icon ?? DEFAULT_ICONS[item.type] ?? "\uD83D\uDCE6"}</span>
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate shrink-0">
           {item.name}

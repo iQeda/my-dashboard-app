@@ -12,7 +12,9 @@ interface ItemCardProps {
   readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
+  readonly onSelect?: (item: DashboardItem) => void;
   readonly onToggleTag?: (tagId: string) => void;
+  readonly isFocused?: boolean;
 }
 
 const DEFAULT_ICONS: Record<string, string> = {
@@ -50,11 +52,12 @@ const TITLE_MT: Record<CardSize, string> = {
   lg: "mt-2",
 };
 
-export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag }: ItemCardProps) {
+export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, isFocused }: ItemCardProps) {
   const { t } = useI18n();
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
 
-  const handleClick = () => { onLaunch(item); };
+  const handleClick = () => { onSelect?.(item); };
+  const handleDoubleClick = () => { onLaunch(item); };
 
   const tagColors = item.tags
     .map((tag) => tagDefs.find((c) => c.id === tag))
@@ -66,7 +69,8 @@ export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, on
         e.preventDefault();
         setCtx({ x: e.clientX, y: e.clientY });
       }}
-      className={`group relative flex flex-col items-start ${GAP[cardSize]} ${PADDING[cardSize]} rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-lg hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all duration-200`}
+      data-focused={isFocused || undefined}
+      className={`group relative flex flex-col items-start ${GAP[cardSize]} ${PADDING[cardSize]} rounded-xl bg-white/70 dark:bg-white/8 border hover:shadow-lg hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all duration-200 ${isFocused ? "ring-2 ring-blue-500/60 border-blue-400 dark:border-blue-500/50" : "border-gray-200 dark:border-white/10"}`}
     >
       <button
         onClick={(e) => {
@@ -108,6 +112,7 @@ export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, on
 
       <button
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         className={`flex flex-col items-start ${GAP[cardSize]} cursor-pointer w-full flex-1`}
       >
         <div className={`flex items-start ${GAP[cardSize]} w-full ${TITLE_MT[cardSize]}`}>

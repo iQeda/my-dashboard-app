@@ -15,8 +15,10 @@ interface DashboardProps {
   readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
+  readonly onSelect?: (item: DashboardItem) => void;
   readonly onToggleTag?: (tagId: string) => void;
   readonly onSelectCategory?: (categoryId: string) => void;
+  readonly focusedItemId?: string;
   readonly onAdd: () => void;
 }
 
@@ -74,7 +76,7 @@ function useGroupedItems(items: readonly DashboardItem[], categoryList: readonly
   }, [items, categoryList, uncategorizedLabel]);
 }
 
-export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag, onSelectCategory, onAdd }: DashboardProps) {
+export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, onSelectCategory, focusedItemId, onAdd }: DashboardProps) {
   const { t } = useI18n();
   const groups = useGroupedItems(items, categoryList, t("uncategorized"));
   const showHeaders = groups.length > 1 || (groups.length === 1 && groups[0].label !== "");
@@ -103,7 +105,7 @@ export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, on
               </div>
             )}
             {group.items.map((item) => (
-              <ItemRow key={item.id} item={item} tagDefs={tagDefs} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} onToggleTag={onToggleTag} />
+              <ItemRow key={item.id} item={item} tagDefs={tagDefs} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} onSelect={onSelect} onToggleTag={onToggleTag} isFocused={item.id === focusedItemId} />
             ))}
           </div>
         ))}
@@ -144,7 +146,7 @@ export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, on
           )}
           <div className={`grid ${GRID_CLASS[cardSize]}`}>
             {group.items.map((item) => (
-              <ItemCard key={item.id} item={item} tagDefs={tagDefs} cardSize={cardSize} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} onToggleTag={onToggleTag} />
+              <ItemCard key={item.id} item={item} tagDefs={tagDefs} cardSize={cardSize} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} onSelect={onSelect} onToggleTag={onToggleTag} isFocused={item.id === focusedItemId} />
             ))}
           </div>
         </div>
