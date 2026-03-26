@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import type { TagDef, Category } from "../types";
+import type { DashboardItem, TagDef, Category } from "../types";
 import { TAG_COLORS } from "../constants";
 import { useI18n } from "../i18n";
 
 interface SidebarProps {
+  readonly items: readonly DashboardItem[];
   readonly tagDefs: readonly TagDef[];
   readonly categoryList: readonly Category[];
   readonly pageView: "dashboard" | "items";
@@ -187,7 +188,7 @@ function SortContextMenu({ x, y, onSortAsc, onSortDesc, onClose }: {
 
 // --- Main Sidebar ---
 export function Sidebar({
-  tagDefs, categoryList, pageView, selectedTags, selectedCategory, showFavoritesOnly,
+  items, tagDefs, categoryList, pageView, selectedTags, selectedCategory, showFavoritesOnly,
   onGoToDashboard, onToggleTag, onToggleCategory, onShowAllItems, onToggleFavoritesFilter,
   onReorderTagDefs, onUpdateTagDef, onDeleteTagDef,
   onUpdateCategoryDef, onDeleteCategoryDef, onReorderCategoryList,
@@ -195,6 +196,26 @@ export function Sidebar({
   onOpenSettings,
 }: SidebarProps) {
   const { t } = useI18n();
+
+  const catCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      const catId = item.category ?? "";
+      counts.set(catId, (counts.get(catId) ?? 0) + 1);
+    }
+    return counts;
+  }, [items]);
+
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      for (const tagId of item.tags) {
+        counts.set(tagId, (counts.get(tagId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [items]);
+
   const [categoriesOpen, setCategoriesOpenRaw] = useState(initialCategoriesOpen);
   const [tagsOpen, setTagsOpenRaw] = useState(initialTagsOpen);
   const setCategoriesOpen = (v: boolean | ((p: boolean) => boolean)) => {
@@ -309,7 +330,8 @@ export function Sidebar({
             : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
         }`}>
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-        {t("all_items")}
+        <span className="flex-1">{t("all_items")}</span>
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{items.length}</span>
       </button>
 
       <button onClick={onToggleFavoritesFilter}
@@ -317,7 +339,8 @@ export function Sidebar({
           showFavoritesOnly ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
         }`}>
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill={showFavoritesOnly ? "currentColor" : "none"} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-        {t("favorites")}
+        <span className="flex-1">{t("favorites")}</span>
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{items.filter((i) => i.favorite).length}</span>
       </button>
 
       {/* Categories */}
@@ -353,6 +376,7 @@ export function Sidebar({
                 } ${catIsDragging.current && catDragIndex === i ? "opacity-40" : ""} ${catIsDragging.current && catOverIndex === i && catDragIndex !== i ? "ring-2 ring-purple-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                 <span className="flex-1 truncate">{cat.label}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{catCounts.get(cat.id) ?? 0}</span>
               </div>
             );
           })}
@@ -364,7 +388,8 @@ export function Sidebar({
               }`}
             >
               <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" /></svg>
-              {t("uncategorized")}
+              <span className="flex-1 truncate">{t("uncategorized")}</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{catCounts.get("") ?? 0}</span>
             </button>
           )}
         </>
@@ -405,6 +430,7 @@ export function Sidebar({
             } ${isDragging.current && dragIndex === i ? "opacity-40" : ""} ${isDragging.current && overIndex === i && dragIndex !== i ? "ring-2 ring-blue-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
             <span className="flex-1 truncate">{tag.label}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{tagCounts.get(tag.id) ?? 0}</span>
           </div>
         );
       })}

@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useConfig } from "./hooks/useConfig";
 import { useFilter } from "./hooks/useFilter";
+import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
 import { Sidebar } from "./components/Sidebar";
 import { SearchBar } from "./components/SearchBar";
 import { Dashboard } from "./components/Dashboard";
@@ -11,6 +12,8 @@ import { ItemFormModal } from "./components/ItemFormModal";
 import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { ActiveFilters } from "./components/ActiveFilters";
+import { ShortcutHelper } from "./components/ShortcutHelper";
+import { ToolbarControls } from "./components/ToolbarControls";
 import { I18nProvider, useI18n } from "./i18n";
 import type { Locale } from "./i18n";
 import { DashboardOverview } from "./components/DashboardOverview";
@@ -101,14 +104,55 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     cycleTypeFilter,
     clearFilters,
     setSearchQuery,
-    cycleSortOrder,
+    setSortOrder,
+    setTypeFilter,
   } = useFilter(config?.items ?? [], { combinedFilter: config?.combinedFilter, multiTagMode: config?.multiTagMode });
 
   const [editingItem, setEditingItem] = useState<DashboardItem | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showImportNameModal, setShowImportNameModal] = useState(false);
   const [pageView, setPageViewRaw] = useState<PageView>("dashboard");
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Compute display-order items (grouped by category, matching Dashboard rendering)
+  const displayItems = useMemo(() => {
+    const catList = config?.categoryList ?? [];
+    if (!filteredItems.some((i) => i.category)) return filteredItems;
+
+    const groups = new Map<string, DashboardItem[]>();
+    for (const item of filteredItems) {
+      const catId = item.category ?? "";
+      if (!groups.has(catId)) groups.set(catId, []);
+      groups.get(catId)!.push(item);
+    }
+
+    const result: DashboardItem[] = [];
+    for (const cat of catList) {
+      const g = groups.get(cat.id);
+      if (g) { result.push(...g); groups.delete(cat.id); }
+    }
+    const uncategorized = groups.get("");
+    if (uncategorized) result.push(...uncategorized);
+    for (const [catId, g] of groups) {
+      if (catId === "") continue;
+      result.push(...g);
+    }
+    return result;
+  }, [filteredItems, config?.categoryList]);
+
+  const { focusedItem, setFocusedIndex, moveFocus, resetFocus } = useKeyboardNavigation({
+    items: displayItems,
+    enabled: pageView === "items",
+  });
+  const focusedItemRef = useRef(focusedItem);
+  focusedItemRef.current = focusedItem;
+  const selectItem = useCallback((item: DashboardItem) => {
+    const idx = displayItems.indexOf(item);
+    if (idx >= 0) setFocusedIndex(idx);
+  }, [displayItems, setFocusedIndex]);
 
   const navigateTo = useCallback((view: PageView) => {
     setPageViewRaw(view);
@@ -177,38 +221,134 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     updateViewPrefs({ sidebarWidth });
   }, [sidebarWidth, updateViewPrefs]);
 
+  const hasActiveFilters = selectedTags.size > 0 || selectedCategory !== null || showFavoritesOnly || typeFilter !== "all" || searchQuery !== "";
+  const hasActiveFiltersRef = useRef(hasActiveFilters);
+  hasActiveFiltersRef.current = hasActiveFilters;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (showModal || showCommandPalette) return;
-      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
-        e.preventDefault();
-        setShowSettings((prev) => !prev);
+      // Layer 0: Modal / overlay Escape handling
+      if (showModal) {
+        if (e.key === "Escape") { setShowModal(false); setEditingItem(null); }
+        return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
+      if (showCommandPalette) return; // CommandPalette handles its own keys
+      if (showSettings) {
+        if (e.key === "Escape") setShowSettings(false);
+        return;
+      }
+      if (showImportNameModal) {
+        if (e.key === "Escape") setShowImportNameModal(false);
+        return;
+      }
+
+      const meta = e.metaKey || e.ctrlKey;
+
+      // Layer 1: Meta/Ctrl shortcuts
+      if (meta) {
+        if (e.key === ",") {
+          e.preventDefault();
+          setShowSettings((prev) => !prev);
+          return;
+        }
+        if (e.key === "n") {
+          e.preventDefault();
+          setEditingItem(null);
+          setShowModal(true);
+          return;
+        }
+        if (e.key === "k") {
+          e.preventDefault();
+          setShowCommandPalette(true);
+          return;
+        }
+        if (e.key === "f" && !e.shiftKey) {
+          e.preventDefault();
+          if (pageView !== "items") navigateTo("items");
+          searchInputRef.current?.focus();
+          return;
+        }
+        if (e.shiftKey && e.key === "D") {
+          e.preventDefault();
+          navigateTo("dashboard");
+          return;
+        }
+        if (e.shiftKey && e.key === "A" && pageView === "items" && hasActiveFiltersRef.current) {
+          e.preventDefault();
+          for (const item of filteredItems) {
+            launchAndRecord(item);
+          }
+          return;
+        }
+        // Item operation shortcuts (items page + focused item)
+        const fi = focusedItemRef.current;
+        if (pageView === "items" && fi) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            launchAndRecord(fi);
+            return;
+          }
+          if (e.key === "e") {
+            e.preventDefault();
+            setEditingItem(fi);
+            setShowModal(true);
+            return;
+          }
+          if (e.shiftKey && e.key === "F") {
+            e.preventDefault();
+            toggleFavorite(fi.id);
+            return;
+          }
+        }
+        return;
+      }
+
+      // Layer 2: Escape (no modal open)
+      if (e.key === "Escape") {
+        if (hasActiveFiltersRef.current) {
+          clearFilters();
+          resetFocus();
+          return;
+        }
+        searchInputRef.current?.blur();
+        return;
+      }
+
+      // Layer 3: Arrow keys + Enter (items page)
+      if (pageView === "items" && e.key === "ArrowDown" && document.activeElement === searchInputRef.current) {
         e.preventDefault();
-        setEditingItem(null);
-        setShowModal(true);
+        searchInputRef.current?.blur();
+        moveFocus(1);
+        return;
+      }
+      if (pageView === "items" && document.activeElement !== searchInputRef.current) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          moveFocus(1);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          moveFocus(-1);
+          return;
+        }
+        if (e.key === "Enter" && focusedItemRef.current) {
+          e.preventDefault();
+          launchAndRecord(focusedItemRef.current);
+          return;
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showModal, showCommandPalette]);
+  }, [showModal, showCommandPalette, showSettings, showImportNameModal, pageView, navigateTo, launchAndRecord, toggleFavorite, clearFilters, moveFocus, resetFocus]);
 
-  const cycleCardSize = () => {
-    setCardSize((prev) => {
-      const next: CardSize = prev === "sm" ? "md" : prev === "md" ? "lg" : "sm";
-      updateViewPrefs({ cardSize: next });
-      return next;
-    });
-  };
-
-  const handleToggleViewMode = () => {
-    setViewMode((prev) => {
-      const next: ViewMode = prev === "card" ? "list" : "card";
-      updateViewPrefs({ viewMode: next });
-      return next;
-    });
-  };
+  // Scroll focused item into view
+  useEffect(() => {
+    if (!focusedItem) return;
+    const el = document.querySelector("[data-focused]");
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [focusedItem]);
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -237,7 +377,6 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   };
 
   const [importProfileName, setImportProfileName] = useState("");
-  const [showImportNameModal, setShowImportNameModal] = useState(false);
   const [pendingImportPath, setPendingImportPath] = useState<string | null>(null);
 
   const handleImport = async () => {
@@ -281,6 +420,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <div className="flex shrink-0" style={{ width: sidebarWidth }}>
         <Sidebar
+          items={config.items}
           tagDefs={config.tagDefs}
           categoryList={config.categoryList ?? []}
           pageView={pageView}
@@ -313,7 +453,19 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex gap-2 p-4 pb-0">
-          <SearchBar value={searchQuery} onChange={(v) => { setSearchQuery(v); if (v && pageView !== "items") navigateTo("items"); }} sortOrder={sortOrder} onToggleSort={cycleSortOrder} cardSize={cardSize} onCycleCardSize={cycleCardSize} viewMode={viewMode} onToggleViewMode={handleToggleViewMode} typeFilter={typeFilter} onCycleTypeFilter={cycleTypeFilter} shortcutsDisabled={showModal || showCommandPalette || showSettings} onOpenCommandPalette={() => setShowCommandPalette(true)} />
+          <SearchBar value={searchQuery} onChange={(v) => { setSearchQuery(v); if (v && pageView !== "items") navigateTo("items"); }} inputRef={searchInputRef} onInputFocus={resetFocus} />
+          {pageView === "items" && (
+            <ToolbarControls
+              viewMode={viewMode}
+              onSetViewMode={(m) => { setViewMode(m); updateViewPrefs({ viewMode: m }); }}
+              cardSize={cardSize}
+              onSetCardSize={(s) => { setCardSize(s); updateViewPrefs({ cardSize: s }); }}
+              sortOrder={sortOrder}
+              onSetSortOrder={setSortOrder}
+              typeFilter={typeFilter}
+              onSetTypeFilter={setTypeFilter}
+            />
+          )}
           {pageView === "items" && (
             <>
               <button
@@ -322,8 +474,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                     await launchAndRecord(item);
                   }
                 }}
-                disabled={filteredItems.length === 0 || (selectedTags.size === 0 && !showFavoritesOnly)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-white/60 dark:bg-white/10 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 disabled:opacity-30 disabled:cursor-default"
+                disabled={filteredItems.length === 0 || !hasActiveFilters}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-amber-500 hover:bg-amber-600 border-amber-500 text-white disabled:opacity-30 disabled:cursor-default"
                 title={`${t("open_all")} ${filteredItems.length}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,14 +543,20 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                 onDuplicate={duplicateItem}
                 onDelete={deleteItem}
                 onLaunch={launchAndRecord}
+                onSelect={selectItem}
                 onToggleTag={toggleTag}
                 onSelectCategory={toggleCategory}
+                focusedItemId={focusedItem?.id}
                 onAdd={handleAdd}
               />
             </div>
           </>
         )}
       </main>
+
+      <div className="fixed bottom-4 right-4 z-40">
+        <ShortcutHelper />
+      </div>
 
       {showSettings && (
         <SettingsModal

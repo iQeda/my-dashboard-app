@@ -80,9 +80,28 @@ GitHub Secrets（リリースに必要）:
   - combinedFilter (Category + Tag 結合フィルター。デフォルト false = 排他フィルター)
   - toggleCombinedFilter, toggleMultiTagMode
   - searchQuery, sortOrder, typeFilter (all/app/url)
+  - setSortOrder, setTypeFilter（直接 setter、ドロップダウンメニュー用）
+- `useKeyboardNavigation` hook - キーボードによるアイテムフォーカス管理
+  - focusedIndex, setFocusedIndex, focusedItem, moveFocus, resetFocus
+  - `displayItems`（カテゴリグループ順）を入力として使用し、表示順と一致
+  - `enabled` が false または items が変わるとフォーカスリセット
 - `DashboardOverview.tsx` - Dashboard ページ。Favorites（ItemCard S）、Categories、Tags（件数付き）、Recent items（ItemCard S、最大20件）を表示
-- ItemCard/ItemRow は `invoke` を直接呼ばず、親から `onLaunch` コールバックを受け取る設計
+- ItemCard/ItemRow は `invoke` を直接呼ばず、親から `onLaunch`/`onSelect` コールバックを受け取る設計
+  - シングルクリック → `onSelect`（フォーカス）、ダブルクリック → `onLaunch`（起動）
+  - `isFocused` prop でフォーカス状態のリングハイライト表示
+  - タグバッジクリックで `onToggleTag` → タグフィルター適用
+- `ToolbarControls.tsx` - ドロップダウンメニュー式のツールバー（items ページのみ）
+  - Display: ビューモード（List/Card）+ カードサイズ（S/M/L）
+  - Filter: タイプフィルター（All/App/Web）、活性時は青ハイライト
+  - Sort: ソート順（A→Z / Z→A）
+  - 排他制御で同時に1つのみ展開、選択後に自動閉じ
+- `ToolbarDropdown.tsx` - 再利用可能なドロップダウンコンポーネント
+  - `ToolbarDropdown`, `DropdownItem`, `DropdownSeparator`, `DropdownLabel` をエクスポート
+  - `createPortal` + `getBoundingClientRect` でポータル表示
+- `ShortcutHelper.tsx` - キーボードショートカット一覧。画面右下固定、ポップオーバーは上方向に展開
+- `SearchBar.tsx` - 検索入力のみ（コントロールボタンは ToolbarControls に分離）
 - `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移
+- `Sidebar.tsx` - カテゴリ・タグ・All Items・Favorites に件数表示。`items` prop から `useMemo` で集計
 - コンポーネントは全て props ベースの named export 関数コンポーネント
 
 ### Data Flow
@@ -130,6 +149,31 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **`launchAndRecord()` で起動一元化**: ItemCard/ItemRow は `onLaunch` コールバック経由。直接 `invoke` しない
 - **Global Shortcut**: `tauri-plugin-global-shortcut` でアプリ非フォーカス時もランチャー表示。Settings の Record ボタンで設定（SKILL.md #11, #12）
 - **In-app Auto-update**: `tauri-plugin-updater` + `tauri-plugin-process` で Settings > About からアプリ内更新。Check for Updates → Update Now でダウンロード・インストール・再起動まで自動実行（手動 `brew` 不要）（SKILL.md #13）
+- **シングルクリック=選択、ダブルクリック=起動**: items ページでは `onSelect` でフォーカス、`onLaunch` でダブルクリック起動。DashboardOverview は `onSelect` なしなのでダブルクリックのみで起動
+- **キーボードナビゲーション**: `useKeyboardNavigation` hook で `↑↓` フォーカス移動、`Enter` で起動。`displayItems`（カテゴリグループ順に並べ替え済み）で表示順と一致
+- **集約キーボードハンドラー**: App.tsx の単一 `useEffect` で全ショートカットを管理。`focusedItemRef` + `hasActiveFiltersRef` で ref 参照し、リスナー再登録を最小化
+- **ツールバードロップダウン**: SearchBar からコントロールを分離し、Display/Filter/Sort の3グループに分類。`ToolbarDropdown` プリミティブで統一
+- **ShortcutHelper 右下固定**: ツールバーから分離し、全ページで画面右下に固定表示。ポップオーバーは上方向に展開
+- **サイドバー件数表示**: All Items / Favorites / 各カテゴリ / 各タグの横に件数を `useMemo` で集計・表示
+- **カテゴリセパレータークリック可能**: Dashboard のカテゴリグループ見出しをクリックでカテゴリフィルター適用（Uncategorized は対象外）
+
+## Keyboard Shortcuts
+
+| ショートカット | 動作 |
+|---|---|
+| `⌘F` | 検索バーにフォーカス |
+| `⌘⇧D` | Dashboard ページへ |
+| `⌘K` | コマンドパレット |
+| `⌘,` | 設定 |
+| `⌘N` | 新規アイテム |
+| `⌘⇧A` | フィルター結果をすべて開く |
+| `⌘E` | 選択中アイテムを編集 |
+| `⌘⇧F` | お気に入りトグル |
+| `⌘Enter` | 選択中アイテムを起動 |
+| `Esc` | モーダル閉じ → フィルター解除 → 検索ブラー |
+| `↑` / `↓` | アイテム間フォーカス移動 |
+| `↓`（検索バー時） | 検索バーを抜けてリストへ |
+| `Enter` | フォーカス中アイテムを起動 |
 
 ## Tauri WebView Gotchas
 
