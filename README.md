@@ -157,6 +157,7 @@ Actions が自動実行する内容:
 my-dashboard-app/
 ├── .github/
 │   ├── workflows/ci.yml        # CI (TypeScript + Rust checks)
+│   ├── workflows/release.yml   # Release (tag push → build → publish)
 │   ├── ISSUE_TEMPLATE/         # Bug Report / Feature Request
 │   └── pull_request_template.md
 ├── src-tauri/                  # Rust バックエンド
@@ -251,7 +252,8 @@ my-dashboard-app/
 
 ## CI/CD
 
-- **GitHub Actions** - PR・push 時に TypeScript 型チェック (`tsc --noEmit`) + ESLint + Rust `cargo check` を自動実行（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）
+- **GitHub Actions CI** - PR・push 時に TypeScript 型チェック (`tsc --noEmit`) + ESLint + Rust `cargo check` を自動実行（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）
+- **GitHub Actions Release** - `v*` タグ push で署名付き Tauri ビルド → GitHub Release 作成 → Homebrew Cask 自動更新（[`.github/workflows/release.yml`](.github/workflows/release.yml)）。必要な GitHub Secrets: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `HOMEBREW_TAP_TOKEN`
 - **Branch Protection** - `main` ブランチへの直接 push は禁止。PR 必須、1 approval 以上で merge
 - **Auto-update** - Tauri updater plugin によるアプリ内自動更新。Settings > About から確認・実行
 - **Issue Templates** - [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md) / [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
