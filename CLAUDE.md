@@ -72,14 +72,17 @@ GitHub Secrets（リリースに必要）:
   - addItem, updateItem, deleteItem, duplicateItem, toggleFavorite
   - reorderTagDefs, updateTagDef, deleteTagDef
   - updateCategoryDef, deleteCategoryDef, reorderCategoryList
-  - updateViewPrefs (viewMode, cardSize, sidebarWidth 永続化)
+  - updateViewPrefs (viewMode, cardSize, sidebarWidth, sidebarCategoriesOpen, sidebarTagsOpen, combinedFilter, multiTagMode 永続化)
   - updateLocale (言語設定)
   - 絵文字履歴は addItem/updateItem 内で同時更新（SKILL.md #6 参照）
 - `useFilter` hook - フィルタリング
   - selectedTags (Set), selectedCategory (null/""/catId), multiTagMode (AND 条件), showFavoritesOnly
+  - combinedFilter (Category + Tag 結合フィルター。デフォルト false = 排他フィルター)
+  - toggleCombinedFilter, toggleMultiTagMode
   - searchQuery, sortOrder, typeFilter (all/app/url)
 - `DashboardOverview.tsx` - Dashboard ページ。Favorites（ItemCard S）、Categories、Tags（件数付き）、Recent items（ItemCard S、最大20件）を表示
 - ItemCard/ItemRow は `invoke` を直接呼ばず、親から `onLaunch` コールバックを受け取る設計
+- `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移
 - コンポーネントは全て props ベースの named export 関数コンポーネント
 
 ### Data Flow
@@ -98,7 +101,7 @@ Switch: Rust switch_config → config.json を上書き → reload
 - `Category` (id, label) - カテゴリ定義。アイテムに1つだけ設定可能
 - `DashboardItem` - id, name, type, target, tags[], icon?, favorite?, category?, description?
 - `RecentAccessEntry` - id, at (Unix timestamp ms via `Date.now()`)
-- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?
+- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?, sidebarCategoriesOpen?, sidebarTagsOpen?, combinedFilter?, multiTagMode?
 
 ## Config File Location
 
@@ -116,7 +119,9 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **`configRef` パターン + 単一 saveConfig**: 連続保存の競合回避（SKILL.md #6）
 - **Import は別名保存**: 端末間の差異を考慮
 - **Tags と Category の分離**: タグ定義は `TagDef`（旧 `Category`）、カテゴリは `Category`
-- **Multi タグは AND 条件**: 選択した全タグを持つアイテムのみ表示
+- **Category / Tag 排他フィルター**: デフォルトで一方を選ぶと他方がクリアされる。ActiveFilters の "Category + Tag" トグルで結合フィルターに切替可能
+- **Multi タグは AND 条件**: 選択した全タグを持つアイテムのみ表示。ActiveFilters の "Multi Tag (AND)" トグルで切替（Sidebar から移動）
+- **サイドバーセクション折りたたみ**: Categories/Tags の見出しクリックで折りたたみ。状態は config に保存
 - **Duplicate は `XXX (Copy)`**: ソートでオリジナル直下に並ぶ命名規則
 - **サイドバー幅リサイズ**: Pointer Events でドラッグ、config に永続化
 - **見出し右クリックソート**: Categories/Tags の見出しを右クリックで昇順/降順ソート

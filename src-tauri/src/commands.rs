@@ -55,6 +55,14 @@ pub struct AppConfig {
     pub recent_access: Option<Vec<RecentAccessEntry>>,
     #[serde(rename = "globalShortcut", skip_serializing_if = "Option::is_none")]
     pub global_shortcut: Option<String>,
+    #[serde(rename = "sidebarCategoriesOpen", skip_serializing_if = "Option::is_none")]
+    pub sidebar_categories_open: Option<bool>,
+    #[serde(rename = "sidebarTagsOpen", skip_serializing_if = "Option::is_none")]
+    pub sidebar_tags_open: Option<bool>,
+    #[serde(rename = "combinedFilter", skip_serializing_if = "Option::is_none")]
+    pub combined_filter: Option<bool>,
+    #[serde(rename = "multiTagMode", skip_serializing_if = "Option::is_none")]
+    pub multi_tag_mode: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

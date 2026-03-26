@@ -29,7 +29,7 @@ const translations = {
   "favorites": { en: "Favorites", ja: "お気に入り" },
   "categories": { en: "Categories", ja: "カテゴリ" },
   "tags": { en: "Tags", ja: "タグ" },
-  "multi": { en: "Multi", ja: "複数選択" },
+  "multi": { en: "Multi Tag (AND)", ja: "複数タグ (AND)" },
   "settings": { en: "Settings", ja: "設定" },
 
   // Item Form
@@ -64,6 +64,7 @@ const translations = {
   "sort_desc_name": { en: "Sort Z → A", ja: "降順ソート" },
   "type_all": { en: "All", ja: "すべて" },
   "clear_all": { en: "Clear All", ja: "すべて解除" },
+  "combined_filter": { en: "Category + Tag", ja: "カテゴリ + タグ" },
   "open_all": { en: "Open All", ja: "すべて開く" },
 
   // Context Menu

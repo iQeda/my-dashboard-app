@@ -131,20 +131,22 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
             {t("global_shortcut")}
           </h3>
           <div className="flex items-center gap-2">
-            {recording ? (
-              <span className="flex-1 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-500/40 text-sm text-blue-700 dark:text-blue-300 animate-pulse">
-                {t("press_to_record")}
-              </span>
-            ) : (
-              <span className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 font-mono">
-                {globalShortcut || t("not_set")}
-              </span>
-            )}
+            <span className={`flex-1 px-3 py-2 rounded-lg text-sm ${
+              recording
+                ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-500/40 text-blue-700 dark:text-blue-300"
+                : "bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-mono"
+            }`}>
+              {recording ? t("press_to_record") : (globalShortcut || t("not_set"))}
+            </span>
             <button
-              onClick={() => setRecording(true)}
-              className="px-3 py-2 rounded-lg text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors cursor-pointer"
+              onClick={() => setRecording(!recording)}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                recording
+                  ? "text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  : "text-white bg-blue-500 hover:bg-blue-600"
+              }`}
             >
-              {t("record")}
+              {recording ? t("cancel") : t("record")}
             </button>
             {globalShortcut && (
               <button

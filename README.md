@@ -111,8 +111,8 @@ Actions が自動実行する内容:
 - 見出し右クリックで昇順/降順ソート
 
 ### Tags
-- タグで分類・フィルタリング（シングル / マルチ選択モード切替）
-- マルチ選択は AND 条件（選択した全タグを持つアイテムのみ表示）
+- タグで分類・フィルタリング
+- マルチ選択は AND 条件（選択した全タグを持つアイテムのみ表示。ActiveFilters の "Multi Tag (AND)" トグルで切替）
 - 右クリックで Rename / Change Color / Delete
 - 20色カラーパレットから色を選択
 - ポインターイベントベースのドラッグ&ドロップで並び替え
@@ -122,27 +122,28 @@ Actions が自動実行する内容:
 ### UI
 - **ビュー切替** - カードビュー / リストビュー（デフォルト: リスト）
 - **Dashboard ページ** - ランディングページ。Favorites（ItemCard S）、Categories、Tags（件数付き）、Recent items（ItemCard S、最大20件）を表示。アプリ起動時のデフォルトビュー
-- **コマンドパレット** (`⌘K`) - アイテム + タグの統合検索。キーボードで選択・実行
+- **コマンドパレット** (`⌘K`) - アイテム + タグの統合検索。キーボードで選択・実行。タグ選択で items ページに遷移
 - **Back/Forward ナビゲーション** - History API (`pushState`/`popstate`) + Magic Mouse スワイプジェスチャー対応
 - **カードサイズ切替** - S / M / L の3段階（カードビュー時のみ）
 - **ソート** - A→Z / Z→A（デフォルト昇順）
 - **タイプフィルター** - All / App / Web
 - **検索バー** - アイテム名で絞り込み
-- **アクティブフィルター表示** - 検索バー下にフィルターチップ表示 + Clear All
+- **アクティブフィルター表示** - 検索バー下にフィルターチップ表示 + Clear All + "Category + Tag" トグル（結合フィルター）+ "Multi Tag (AND)" トグル
 - **ダークモード** - OS 設定に自動追従
 - **i18n** - 英語/日本語切替（Settings から）
 - **Auto-update** - Settings > About > Check for Updates → Update Now（ダウンロード・インストール・再起動を自動実行）
 - 起動時にウィンドウ最大化
-- ビューモード・カードサイズ・サイドバー幅は config に保存（次回起動時に復元）
+- ビューモード・カードサイズ・サイドバー幅・サイドバーセクション開閉・フィルターモードは config に保存（次回起動時に復元）
 
 ### Sidebar
 - **Dashboard** - ダッシュボード概要ページ（ホームアイコン）
 - **All Items** - 全アイテム表示
 - **Favorites** - お気に入りフィルター
-- **Categories** - カテゴリ絞り込み + Uncategorized（ドラッグ並替・右クリック編集・見出しソート）
-- **Tags** - シングル / マルチ選択トグル付き（ドラッグ並替・右クリック編集・見出しソート）
+- **Categories** - カテゴリ絞り込み + Uncategorized（ドラッグ並替・右クリック編集・見出しソート）。見出しクリックで折りたたみ可能（状態は config に保存）
+- **Tags** - タグ絞り込み（ドラッグ並替・右クリック編集・見出しソート）。見出しクリックで折りたたみ可能（状態は config に保存）
 - **Settings** (`⌘,`) - 設定画面を開く（Global Shortcut の Record ボタンでカスタムショートカット設定可能）
 - サイドバー幅はドラッグでリサイズ可能（160px〜400px、config に保存）
+- Category と Tag はデフォルトで排他フィルター（一方を選ぶと他方がクリアされる）。ActiveFilters の "Category + Tag" トグルで結合フィルターに切替可能
 
 ### Data & Profiles
 - **iCloud 同期** - `~/Library/Mobile Documents/com~apple~CloudDocs/my-dashboard-app/config.json` に優先保存
@@ -188,7 +189,7 @@ my-dashboard-app/
 │   │   ├── ItemFormModal.tsx   # 追加・編集モーダル（バリデーション付き）
 │   │   ├── Sidebar.tsx         # サイドバー + リサイズ + 右クリックソート
 │   │   ├── SearchBar.tsx       # 検索・ビュー切替・ソート・サイズ・タイプフィルター
-│   │   ├── ActiveFilters.tsx   # フィルターチップ表示 + Clear All
+│   │   ├── ActiveFilters.tsx   # フィルターチップ表示 + Clear All + Combined/Multi トグル
 │   │   ├── CommandPalette.tsx  # 統合検索パレット (⌘K)
 │   │   ├── ContextMenu.tsx     # アイテム右クリックメニュー
 │   │   ├── SettingsModal.tsx   # 設定画面 (⌘,) + 言語切替
@@ -236,7 +237,11 @@ my-dashboard-app/
   "recentAccess": [
     { "id": "claude", "at": 1711454400000 }
   ],
-  "globalShortcut": "CommandOrControl+Shift+Space"
+  "globalShortcut": "CommandOrControl+Shift+Space",
+  "sidebarCategoriesOpen": true,
+  "sidebarTagsOpen": true,
+  "combinedFilter": false,
+  "multiTagMode": false
 }
 ```
 
@@ -249,6 +254,10 @@ my-dashboard-app/
 - `viewMode`, `cardSize`, `sidebarWidth`, `locale`: UI 状態の永続化
 - `recentAccess`: 最近アクセスしたアイテムの配列 (`{id, at}` 形式、`at` は Unix timestamp (ms)、最大20件)
 - `globalShortcut`: システム全体のグローバルショートカットキー (例: `"CommandOrControl+Shift+Space"`)
+- `sidebarCategoriesOpen`: サイドバー Categories セクションの開閉状態
+- `sidebarTagsOpen`: サイドバー Tags セクションの開閉状態
+- `combinedFilter`: Category + Tag の結合フィルターモード（デフォルト: `false` = 排他フィルター）
+- `multiTagMode`: 複数タグ AND 条件モード（デフォルト: `false`）
 
 ## CI/CD
 

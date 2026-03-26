@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import type { DashboardItem, TagDef } from "../types";
 import { useI18n } from "../i18n";
 
@@ -7,6 +6,7 @@ interface CommandPaletteProps {
   readonly items: readonly DashboardItem[];
   readonly tagDefs: readonly TagDef[];
   readonly onToggleTag: (tagId: string) => void;
+  readonly onLaunch: (item: DashboardItem) => void;
   readonly onClose: () => void;
 }
 
@@ -15,7 +15,7 @@ const DEFAULT_ICONS: Record<string, string> = {
   url: "\uD83C\uDF10",
 };
 
-export function CommandPalette({ items, tagDefs, onToggleTag, onClose }: CommandPaletteProps) {
+export function CommandPalette({ items, tagDefs, onToggleTag, onLaunch, onClose }: CommandPaletteProps) {
   const { t } = useI18n();
   const [query, setQueryRaw] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -46,22 +46,13 @@ export function CommandPalette({ items, tagDefs, onToggleTag, onClose }: Command
   const executeResult = useCallback(
     async (result: Result) => {
       if (result.kind === "item") {
-        const item = result.data;
-        try {
-          if (item.type === "app") {
-            await invoke("launch_app", { name: item.target });
-          } else {
-            await invoke("open_url", { url: item.target });
-          }
-        } catch (e) {
-          console.error("Failed to launch:", e);
-        }
+        onLaunch(result.data);
       } else {
         onToggleTag(result.data.id);
       }
       onClose();
     },
-    [onToggleTag, onClose],
+    [onToggleTag, onLaunch, onClose],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

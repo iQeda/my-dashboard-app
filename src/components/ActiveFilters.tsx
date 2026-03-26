@@ -7,12 +7,16 @@ interface ActiveFiltersProps {
   readonly selectedCategory: string | null;
   readonly showFavoritesOnly: boolean;
   readonly typeFilter: TypeFilter;
+  readonly combinedFilter: boolean;
+  readonly multiTagMode: boolean;
   readonly tagDefs: readonly TagDef[];
   readonly categoryList: readonly Category[];
   readonly onToggleTag: (id: string) => void;
   readonly onToggleCategory: (id: string) => void;
   readonly onToggleFavoritesFilter: () => void;
   readonly onCycleTypeFilter: () => void;
+  readonly onToggleCombinedFilter: () => void;
+  readonly onToggleMultiTagMode: () => void;
   readonly onClearAll: () => void;
 }
 
@@ -21,29 +25,61 @@ export function ActiveFilters({
   selectedCategory,
   showFavoritesOnly,
   typeFilter,
+  combinedFilter,
+  multiTagMode,
   tagDefs,
   categoryList,
   onToggleTag,
   onToggleCategory,
   onToggleFavoritesFilter,
   onCycleTypeFilter,
+  onToggleCombinedFilter,
+  onToggleMultiTagMode,
   onClearAll,
 }: ActiveFiltersProps) {
   const { t } = useI18n();
   const hasFilters = selectedTags.size > 0 || selectedCategory !== null || showFavoritesOnly || typeFilter !== "all";
   if (!hasFilters) return null;
 
-  const selectedTagDefs = tagDefs.filter((t) => selectedTags.has(t.id));
+  const selectedTagDefs = tagDefs.filter((td) => selectedTags.has(td.id));
   const selectedCat = categoryList.find((c) => c.id === selectedCategory);
 
   return (
-    <div className="flex flex-wrap gap-1.5 px-4 pt-2">
+    <div className="flex flex-wrap items-center gap-1.5 px-4 pt-4">
       <button
         onClick={onClearAll}
         className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
       >
         {t("clear_all")}
       </button>
+
+      {/* Filter mode toggles */}
+      <button
+        onClick={onToggleCombinedFilter}
+        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+          combinedFilter
+            ? "bg-blue-500 text-white border-blue-500"
+            : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 hover:border-gray-400"
+        }`}
+        title={combinedFilter ? "Category + Tag combined filter ON" : "Category + Tag combined filter OFF"}
+      >
+        {t("combined_filter")}
+      </button>
+      <button
+        onClick={onToggleMultiTagMode}
+        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+          multiTagMode
+            ? "bg-blue-500 text-white border-blue-500"
+            : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 hover:border-gray-400"
+        }`}
+        title={multiTagMode ? "Multi-select ON (AND)" : "Multi-select OFF"}
+      >
+        {t("multi")}
+      </button>
+
+      <div className="w-px h-4 bg-gray-300 dark:bg-gray-600" />
+
+      {/* Active filter chips */}
       {showFavoritesOnly && (
         <button
           onClick={onToggleFavoritesFilter}

@@ -218,7 +218,7 @@ export function useConfig() {
   );
 
   const updateViewPrefs = useCallback(
-    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number }) => {
+    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean }) => {
       const current = configRef.current;
       if (!current) return;
       const newConfig: AppConfig = { ...current, ...prefs };
