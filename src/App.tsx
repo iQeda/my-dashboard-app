@@ -312,25 +312,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       </div>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        {pageView === "dashboard" ? (
-          <DashboardOverview
-            items={config.items}
-            tagDefs={config.tagDefs}
-            categoryList={config.categoryList ?? []}
-            recentAccess={config.recentAccess ?? []}
-            onSelectTag={(id) => { toggleTag(id); navigateTo("items"); }}
-            onSelectCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
-            onSelectFavorites={() => { toggleFavoritesFilter(); navigateTo("items"); }}
-            onLaunchItem={launchAndRecord}
-            onEdit={handleEdit}
-            onToggleFavorite={toggleFavorite}
-            onDuplicate={duplicateItem}
-            onDelete={deleteItem}
-          />
-        ) : (
-          <>
-            <header className="flex gap-2 p-4 pb-0">
-              <SearchBar value={searchQuery} onChange={setSearchQuery} sortOrder={sortOrder} onToggleSort={cycleSortOrder} cardSize={cardSize} onCycleCardSize={cycleCardSize} viewMode={viewMode} onToggleViewMode={handleToggleViewMode} typeFilter={typeFilter} onCycleTypeFilter={cycleTypeFilter} shortcutsDisabled={showModal || showCommandPalette || showSettings} onOpenCommandPalette={() => setShowCommandPalette(true)} />
+        <header className="flex gap-2 p-4 pb-0">
+          <SearchBar value={searchQuery} onChange={(v) => { setSearchQuery(v); if (v && pageView !== "items") navigateTo("items"); }} sortOrder={sortOrder} onToggleSort={cycleSortOrder} cardSize={cardSize} onCycleCardSize={cycleCardSize} viewMode={viewMode} onToggleViewMode={handleToggleViewMode} typeFilter={typeFilter} onCycleTypeFilter={cycleTypeFilter} shortcutsDisabled={showModal || showCommandPalette || showSettings} onOpenCommandPalette={() => setShowCommandPalette(true)} />
+          {pageView === "items" && (
+            <>
               <button
                 onClick={async () => {
                   for (const item of filteredItems) {
@@ -355,8 +340,27 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                 </svg>
                 {t("add")}
               </button>
-            </header>
+            </>
+          )}
+        </header>
 
+        {pageView === "dashboard" ? (
+          <DashboardOverview
+            items={config.items}
+            tagDefs={config.tagDefs}
+            categoryList={config.categoryList ?? []}
+            recentAccess={config.recentAccess ?? []}
+            onSelectTag={(id) => { toggleTag(id); navigateTo("items"); }}
+            onSelectCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
+            onSelectFavorites={() => { toggleFavoritesFilter(); navigateTo("items"); }}
+            onLaunchItem={launchAndRecord}
+            onEdit={handleEdit}
+            onToggleFavorite={toggleFavorite}
+            onDuplicate={duplicateItem}
+            onDelete={deleteItem}
+          />
+        ) : (
+          <>
             <ActiveFilters
               selectedTags={selectedTags}
               selectedCategory={selectedCategory}
@@ -387,6 +391,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                 onDuplicate={duplicateItem}
                 onDelete={deleteItem}
                 onLaunch={launchAndRecord}
+                onToggleTag={toggleTag}
                 onAdd={handleAdd}
               />
             </div>

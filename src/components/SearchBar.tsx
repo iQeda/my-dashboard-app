@@ -76,6 +76,7 @@ export function SearchBar({ value, onChange, sortOrder, onToggleSort, cardSize, 
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onFocus={(e) => { const el = e.target; if (el.value) requestAnimationFrame(() => el.select()); }}
           placeholder={t("search_placeholder")}
           className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/60 dark:bg-white/10 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
         />

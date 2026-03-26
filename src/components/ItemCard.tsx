@@ -12,6 +12,7 @@ interface ItemCardProps {
   readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
+  readonly onToggleTag?: (tagId: string) => void;
 }
 
 const DEFAULT_ICONS: Record<string, string> = {
@@ -43,7 +44,13 @@ const GAP: Record<CardSize, string> = {
   lg: "gap-4",
 };
 
-export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch }: ItemCardProps) {
+const TITLE_MT: Record<CardSize, string> = {
+  sm: "mt-4",
+  md: "mt-2",
+  lg: "mt-2",
+};
+
+export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag }: ItemCardProps) {
   const { t } = useI18n();
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
 
@@ -103,8 +110,8 @@ export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, on
         onClick={handleClick}
         className={`flex flex-col items-start ${GAP[cardSize]} cursor-pointer w-full flex-1`}
       >
-        <div className={`flex items-center ${GAP[cardSize]} w-full mt-2`}>
-          <span className={ICON_SIZE[cardSize]}>{item.icon ?? DEFAULT_ICONS[item.type] ?? "\uD83D\uDCE6"}</span>
+        <div className={`flex items-start ${GAP[cardSize]} w-full ${TITLE_MT[cardSize]}`}>
+          <span className={`${ICON_SIZE[cardSize]} shrink-0`}>{item.icon ?? DEFAULT_ICONS[item.type] ?? "\uD83D\uDCE6"}</span>
           <span className={`${NAME_SIZE[cardSize]} font-medium text-gray-800 dark:text-gray-200 leading-tight`}>
             {item.name}
           </span>
@@ -118,17 +125,19 @@ export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, on
           </span>
         )}
 
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
           {tagColors.map(
             (cat) =>
               cat && (
-                <span
+                <button
                   key={cat.id}
-                  className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                  type="button"
+                  onClick={() => onToggleTag?.(cat.id)}
+                  className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white hover:opacity-80 transition-opacity cursor-pointer"
                   style={{ backgroundColor: cat.color }}
                 >
                   {cat.label}
-                </span>
+                </button>
               ),
           )}
         </div>
