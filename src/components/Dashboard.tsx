@@ -15,6 +15,7 @@ interface DashboardProps {
   readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
+  readonly onToggleTag?: (tagId: string) => void;
   readonly onAdd: () => void;
 }
 
@@ -72,7 +73,7 @@ function useGroupedItems(items: readonly DashboardItem[], categoryList: readonly
   }, [items, categoryList, uncategorizedLabel]);
 }
 
-export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onAdd }: DashboardProps) {
+export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag, onAdd }: DashboardProps) {
   const { t } = useI18n();
   const groups = useGroupedItems(items, categoryList, t("uncategorized"));
   const showHeaders = groups.length > 1 || (groups.length === 1 && groups[0].label !== "");
@@ -91,7 +92,7 @@ export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, on
               </div>
             )}
             {group.items.map((item) => (
-              <ItemRow key={item.id} item={item} tagDefs={tagDefs} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} />
+              <ItemRow key={item.id} item={item} tagDefs={tagDefs} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} onToggleTag={onToggleTag} />
             ))}
           </div>
         ))}
@@ -122,7 +123,7 @@ export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, on
           )}
           <div className={`grid ${GRID_CLASS[cardSize]}`}>
             {group.items.map((item) => (
-              <ItemCard key={item.id} item={item} tagDefs={tagDefs} cardSize={cardSize} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} />
+              <ItemCard key={item.id} item={item} tagDefs={tagDefs} cardSize={cardSize} onEdit={onEdit} onToggleFavorite={onToggleFavorite} onDuplicate={onDuplicate} onDelete={onDelete} onLaunch={onLaunch} onToggleTag={onToggleTag} />
             ))}
           </div>
         </div>

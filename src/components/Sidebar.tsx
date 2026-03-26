@@ -372,19 +372,17 @@ export function Sidebar({
 
       {/* Tags */}
       <div className="border-t border-gray-200 dark:border-white/10 my-1" />
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setTagsOpen((p) => !p)}
-          onContextMenu={(e) => { e.preventDefault(); setSortMenu({ kind: "tag", x: e.clientX, y: e.clientY }); }}
-          className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
-          title="Right-click to sort"
-        >
-          {t("tags")}
-          <svg className={`w-3 h-3 transition-transform ${tagsOpen ? "" : "-rotate-90"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
+      <button
+        onClick={() => setTagsOpen((p) => !p)}
+        onContextMenu={(e) => { e.preventDefault(); setSortMenu({ kind: "tag", x: e.clientX, y: e.clientY }); }}
+        className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
+        title="Right-click to sort"
+      >
+        {t("tags")}
+        <svg className={`w-3 h-3 transition-transform ${tagsOpen ? "" : "-rotate-90"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
       {/* eslint-disable-next-line react-hooks/refs */}
       {tagsOpen && tagDefs.map((tag, i) => {

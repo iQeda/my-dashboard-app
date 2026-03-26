@@ -11,6 +11,7 @@ interface ItemRowProps {
   readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
+  readonly onToggleTag?: (tagId: string) => void;
 }
 
 const DEFAULT_ICONS: Record<string, string> = {
@@ -18,7 +19,7 @@ const DEFAULT_ICONS: Record<string, string> = {
   url: "\uD83C\uDF10",
 };
 
-export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch }: ItemRowProps) {
+export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag }: ItemRowProps) {
   const { t } = useI18n();
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
 
@@ -57,17 +58,19 @@ export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, 
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate shrink-0">
           {item.name}
         </span>
-        <div className="flex flex-wrap gap-1 shrink-0">
+        <div className="flex flex-wrap gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
           {tagColors.map(
             (cat) =>
               cat && (
-                <span
+                <button
                   key={cat.id}
-                  className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                  type="button"
+                  onClick={() => onToggleTag?.(cat.id)}
+                  className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white hover:opacity-80 transition-opacity cursor-pointer"
                   style={{ backgroundColor: cat.color }}
                 >
                   {cat.label}
-                </span>
+                </button>
               ),
           )}
         </div>

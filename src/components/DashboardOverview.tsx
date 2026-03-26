@@ -70,6 +70,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 onDuplicate={onDuplicate}
                 onDelete={onDelete}
                 onLaunch={onLaunchItem}
+                onToggleTag={onSelectTag}
               />
             ))}
           </div>
@@ -151,6 +152,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 onDuplicate={onDuplicate}
                 onDelete={onDelete}
                 onLaunch={onLaunchItem}
+                onToggleTag={onSelectTag}
               />
             ))}
           </div>
