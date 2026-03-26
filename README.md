@@ -135,6 +135,7 @@ gh release create v<version> \
 - **アクティブフィルター表示** - 検索バー下にフィルターチップ表示 + Clear All
 - **ダークモード** - OS 設定に自動追従
 - **i18n** - 英語/日本語切替（Settings から）
+- **Auto-update** - Settings > About > Check for Updates → Update Now（ダウンロード・インストール・再起動を自動実行）
 - 起動時にウィンドウ最大化
 - ビューモード・カードサイズ・サイドバー幅は config に保存（次回起動時に復元）
 
@@ -158,11 +159,17 @@ gh release create v<version> \
 
 ```
 my-dashboard-app/
+├── .github/
+│   ├── workflows/ci.yml        # CI (TypeScript + Rust checks)
+│   ├── ISSUE_TEMPLATE/         # Bug Report / Feature Request
+│   └── pull_request_template.md
 ├── src-tauri/                  # Rust バックエンド
 │   ├── src/
 │   │   ├── main.rs             # エントリーポイント
 │   │   ├── lib.rs              # Tauri setup, コマンド登録
 │   │   └── commands.rs         # Tauri コマンド
+│   ├── capabilities/
+│   │   └── default.json        # Tauri permissions
 │   ├── resources/
 │   │   └── default-config.json # デフォルト設定
 │   ├── Cargo.toml
@@ -194,6 +201,8 @@ my-dashboard-app/
 ├── index.html
 ├── package.json
 ├── vite.config.ts
+├── eslint.config.js            # ESLint 設定 (Flat Config)
+├── CONTRIBUTING.md              # コントリビューションガイド
 └── .tool-versions              # asdf Node.js バージョン
 ```
 
@@ -228,7 +237,7 @@ my-dashboard-app/
   "sidebarWidth": 208,
   "locale": "en",
   "recentAccess": [
-    { "id": "claude", "at": "2026-03-26T12:00:00.000Z" }
+    { "id": "claude", "at": 1711454400000 }
   ],
   "globalShortcut": "CommandOrControl+Shift+Space"
 }
@@ -241,8 +250,20 @@ my-dashboard-app/
 - `categoryList`: カテゴリ定義 (id, label)
 - `emojiHistory`: 使用済み絵文字の履歴 (最大20個)
 - `viewMode`, `cardSize`, `sidebarWidth`, `locale`: UI 状態の永続化
-- `recentAccess`: 最近アクセスしたアイテムの配列 (`{id, at}` 形式、最大20件)
+- `recentAccess`: 最近アクセスしたアイテムの配列 (`{id, at}` 形式、`at` は Unix timestamp (ms)、最大20件)
 - `globalShortcut`: システム全体のグローバルショートカットキー (例: `"CommandOrControl+Shift+Space"`)
+
+## CI/CD
+
+- **GitHub Actions** - PR・push 時に TypeScript 型チェック (`tsc --noEmit`) + ESLint + Rust `cargo check` を自動実行（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）
+- **Branch Protection** - `main` ブランチへの直接 push は禁止。PR 必須、1 approval 以上で merge
+- **Auto-update** - Tauri updater plugin によるアプリ内自動更新。Settings > About から確認・実行
+- **Issue Templates** - [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md) / [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
+- **PR Template** - [Pull Request Template](.github/pull_request_template.md)
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) を参照。
 
 ## Profile System
 

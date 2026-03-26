@@ -42,7 +42,14 @@ pnpm lint                # ESLint
   - `import_config(path, profile_name)` - 別名プロファイルとして保存
   - `list_config_profiles()` / `switch_config(filename)` - プロファイル管理
   - `list_installed_apps()` - Mac インストール済みアプリスキャン
-- `lib.rs` - Tauri Builder にコマンドとプラグイン (dialog, log, global-shortcut) を登録。`register_shortcut` / `unregister_all_shortcuts` コマンド。WKWebView の `allowsBackForwardNavigationGestures` を `objc2` クレートで有効化
+- `lib.rs` - Tauri Builder にコマンドとプラグイン (dialog, log, global-shortcut, updater, process) を登録。`register_shortcut` / `unregister_all_shortcuts` コマンド。WKWebView の `allowsBackForwardNavigationGestures` を `objc2` クレートで有効化
+
+### Capabilities (`src-tauri/capabilities/default.json`)
+
+- `core:default`, `dialog:default`, `dialog:allow-open`, `dialog:allow-save`
+- `global-shortcut:default` - グローバルショートカット登録
+- `updater:default` - アプリ内自動更新
+- `process:default` - アプリ再起動 (`relaunch`)
 
 ### React Frontend (`src/`)
 
@@ -77,7 +84,7 @@ Switch: Rust switch_config → config.json を上書き → reload
 - `TagDef` (id, label, color) - タグ定義。旧名 `Category`（リネーム済み）
 - `Category` (id, label) - カテゴリ定義。アイテムに1つだけ設定可能
 - `DashboardItem` - id, name, type, target, tags[], icon?, favorite?, category?, description?
-- `RecentAccessEntry` - id, at (ISO 8601 timestamp)
+- `RecentAccessEntry` - id, at (Unix timestamp ms via `Date.now()`)
 - `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?
 
 ## Config File Location
@@ -104,6 +111,7 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **Back/Forward ナビゲーション**: `history.pushState`/`popstate` + WKWebView `allowsBackForwardNavigationGestures` (Magic Mouse スワイプ)
 - **`launchAndRecord()` で起動一元化**: ItemCard/ItemRow は `onLaunch` コールバック経由。直接 `invoke` しない
 - **Global Shortcut**: `tauri-plugin-global-shortcut` でアプリ非フォーカス時もランチャー表示。Settings の Record ボタンで設定（SKILL.md #11, #12）
+- **In-app Auto-update**: `tauri-plugin-updater` + `tauri-plugin-process` で Settings > About からアプリ内更新。Check for Updates → Update Now でダウンロード・インストール・再起動まで自動実行（手動 `brew` 不要）（SKILL.md #13）
 
 ## Tauri WebView Gotchas
 
