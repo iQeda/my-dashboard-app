@@ -9,8 +9,8 @@ interface ItemCardProps {
   readonly cardSize: CardSize;
   readonly onEdit: (item: DashboardItem) => void;
   readonly onToggleFavorite: (id: string) => void;
-  readonly onDuplicate: (id: string) => void;
-  readonly onDelete: (id: string) => void;
+  readonly onDuplicate?: (id: string) => void;
+  readonly onDelete?: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
   readonly onSelect?: (item: DashboardItem) => void;
   readonly onToggleTag?: (tagId: string) => void;
@@ -155,9 +155,9 @@ export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, on
           y={ctx.y}
 
           onEdit={() => onEdit(item)}
-          onDuplicate={() => onDuplicate(item.id)}
+          onDuplicate={onDuplicate ? () => onDuplicate(item.id) : undefined}
           onToggleFavorite={() => onToggleFavorite(item.id)}
-          onDelete={() => onDelete(item.id)}
+          onDelete={onDelete ? () => onDelete(item.id) : undefined}
           onClose={() => setCtx(null)}
         />
       )}

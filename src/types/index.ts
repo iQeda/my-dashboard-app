@@ -19,11 +19,13 @@ export interface TagDef {
   readonly id: string;
   readonly label: string;
   readonly color: string;
+  readonly pinned?: boolean;
 }
 
 export interface Category {
   readonly id: string;
   readonly label: string;
+  readonly pinned?: boolean;
 }
 
 export interface AppConfig {

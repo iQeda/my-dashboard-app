@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import type { ConfigProfile } from "../types";
@@ -19,6 +20,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChangeGlobalShortcut, onImport, onExport, onSwitchProfile, onClose }: SettingsModalProps) {
   const { t } = useI18n();
+  const [appVersion, setAppVersion] = useState("");
   const [configPath, setConfigPath] = useState("");
   const [profiles, setProfiles] = useState<ConfigProfile[]>([]);
   const [recording, setRecording] = useState(false);
@@ -81,6 +83,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
   }, [recording, onChangeGlobalShortcut]);
 
   useEffect(() => {
+    getVersion().then(setAppVersion).catch(console.error);
     invoke<string>("get_config_path").then(setConfigPath).catch(console.error);
     invoke<ConfigProfile[]>("list_config_profiles").then(setProfiles).catch(console.error);
   }, []);
@@ -239,7 +242,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
           </h3>
           <div className="flex items-center gap-3">
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              MyDashboard v0.4.0
+              MyDashboard v{appVersion}
             </p>
             <button
               onClick={async () => {
