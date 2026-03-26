@@ -1,0 +1,26 @@
+{
+  "items": [
+    { "id": "claude", "name": "Claude", "type": "app", "target": "Claude", "tags": ["ai", "dev"], "category": "ai-tools" },
+    { "id": "codex", "name": "Codex", "type": "app", "target": "Codex", "tags": ["ai", "dev"], "category": "ai-tools" },
+    { "id": "ticktick", "name": "TickTick", "type": "app", "target": "TickTick", "tags": ["productivity"], "category": "productivity" },
+    { "id": "asana", "name": "Asana", "type": "app", "target": "Asana", "tags": ["productivity"], "category": "productivity" },
+    { "id": "zed", "name": "Zed", "type": "app", "target": "Zed", "tags": ["dev"], "category": "editor" },
+    { "id": "cursor", "name": "Cursor", "type": "app", "target": "Cursor", "tags": ["dev"], "category": "editor" },
+    { "id": "github-reviews", "name": "GitHub Reviews", "type": "url", "target": "https://github.com/pulls/review-requested", "tags": ["dev", "workflow"], "category": "workflow" },
+    { "id": "gemini", "name": "Gemini", "type": "url", "target": "https://gemini.google.com/app", "tags": ["ai"], "category": "ai-tools" },
+    { "id": "neetcode", "name": "NeetCode", "type": "url", "target": "https://neetcode.io/", "tags": ["learning"] }
+  ],
+  "tagDefs": [
+    { "id": "ai", "label": "AI Tools", "color": "#8B5CF6" },
+    { "id": "dev", "label": "Development", "color": "#3B82F6" },
+    { "id": "productivity", "label": "Productivity", "color": "#10B981" },
+    { "id": "workflow", "label": "Workflow", "color": "#EF4444" },
+    { "id": "learning", "label": "Learning", "color": "#F59E0B" }
+  ],
+  "categoryList": [
+    { "id": "ai-tools", "label": "AI Tools" },
+    { "id": "editor", "label": "Editor" },
+    { "id": "productivity", "label": "Productivity" },
+    { "id": "workflow", "label": "Workflow" }
+  ]
+}
