@@ -262,7 +262,7 @@ export function EmojiPicker({ value, fallback, history = [], onSelect, onOpenCha
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [open, updatePos]);
+  }, [open, updatePos, setOpen]);
 
   const allEntries = useMemo(() => Object.values(EMOJI_GROUPS).flat(), []);
 

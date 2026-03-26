@@ -121,6 +121,7 @@ export function I18nProvider({ locale, children }: { locale: Locale; children: R
   return <I18nContext.Provider value={{ t, locale }}>{children}</I18nContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useI18n() {
   return useContext(I18nContext);
 }

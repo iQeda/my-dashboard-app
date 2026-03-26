@@ -67,10 +67,11 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
 
     window.addEventListener("keydown", onDown, true);
     window.addEventListener("keyup", onUp, true);
+    const keys = keysPressed.current;
     return () => {
       window.removeEventListener("keydown", onDown, true);
       window.removeEventListener("keyup", onUp, true);
-      keysPressed.current.clear();
+      keys.clear();
     };
   }, [recording, onChangeGlobalShortcut]);
 

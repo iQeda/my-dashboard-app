@@ -17,8 +17,9 @@ const DEFAULT_ICONS: Record<string, string> = {
 
 export function CommandPalette({ items, tagDefs, onToggleTag, onClose }: CommandPaletteProps) {
   const { t } = useI18n();
-  const [query, setQuery] = useState("");
+  const [query, setQueryRaw] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const setQuery = useCallback((v: string) => { setQueryRaw(v); setSelectedIndex(0); }, []);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -37,9 +38,6 @@ export function CommandPalette({ items, tagDefs, onToggleTag, onClose }: Command
     return [...matchedTags, ...matchedItems];
   })();
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
 
   useEffect(() => {
     inputRef.current?.focus();

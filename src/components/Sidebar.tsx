@@ -313,6 +313,7 @@ export function Sidebar({
               title="Right-click to sort"
             >{t("categories")}</h2>
           </div>
+          {/* eslint-disable-next-line react-hooks/refs */}
           {categoryList.map((cat, i) => {
             if (editPanel?.kind === "rename-cat" && editPanel.cat.id === cat.id) {
               return <InlineRename key={cat.id} value={cat.label} onSave={(v) => { onUpdateCategoryDef(cat.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
@@ -360,6 +361,7 @@ export function Sidebar({
         </button>
       </div>
 
+      {/* eslint-disable-next-line react-hooks/refs */}
       {tagDefs.map((tag, i) => {
         if (editPanel?.kind === "rename-tag" && editPanel.tag.id === tag.id) {
           return <InlineRename key={tag.id} value={tag.label} onSave={(v) => { onUpdateTagDef(tag.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
