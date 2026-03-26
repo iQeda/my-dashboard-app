@@ -239,7 +239,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
           </h3>
           <div className="flex items-center gap-3">
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              MyDashboard v0.3.0
+              MyDashboard v0.4.0
             </p>
             <button
               onClick={async () => {
