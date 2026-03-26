@@ -4,13 +4,14 @@ import type { DashboardItem, ItemType } from "../types";
 export type SortOrder = "asc" | "desc";
 export type TypeFilter = "all" | ItemType;
 
-export function useFilter(items: readonly DashboardItem[]) {
+export function useFilter(items: readonly DashboardItem[], initialPrefs?: { combinedFilter?: boolean; multiTagMode?: boolean }) {
   const [selectedTags, setSelectedTags] = useState<ReadonlySet<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [multiTagMode, setMultiTagMode] = useState(false);
+  const [multiTagMode, setMultiTagMode] = useState(initialPrefs?.multiTagMode ?? false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [combinedFilter, setCombinedFilter] = useState(initialPrefs?.combinedFilter ?? false);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const filteredItems = useMemo(() => {
@@ -50,11 +51,17 @@ export function useFilter(items: readonly DashboardItem[]) {
       }
       return prev.has(tagId) ? new Set() : new Set([tagId]);
     });
+    if (!combinedFilter) setSelectedCategory(null);
     setShowFavoritesOnly(false);
-  }, [multiTagMode]);
+  }, [multiTagMode, combinedFilter]);
 
   const toggleCategory = useCallback((catId: string) => {
     setSelectedCategory((prev) => (prev === catId ? null : catId));
+    if (!combinedFilter) setSelectedTags(new Set());
+  }, [combinedFilter]);
+
+  const toggleCombinedFilter = useCallback(() => {
+    setCombinedFilter((prev) => !prev);
   }, []);
 
   const toggleMultiTagMode = useCallback(() => {
@@ -104,6 +111,8 @@ export function useFilter(items: readonly DashboardItem[]) {
     filteredItems,
     toggleTag,
     toggleCategory,
+    combinedFilter,
+    toggleCombinedFilter,
     toggleMultiTagMode,
     typeFilter,
     showAllItems,

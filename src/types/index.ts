@@ -36,6 +36,10 @@ export interface AppConfig {
   readonly locale?: string;
   readonly sidebarWidth?: number;
   readonly globalShortcut?: string;
+  readonly sidebarCategoriesOpen?: boolean;
+  readonly sidebarTagsOpen?: boolean;
+  readonly combinedFilter?: boolean;
+  readonly multiTagMode?: boolean;
   readonly recentAccess?: readonly RecentAccessEntry[];
 }
 

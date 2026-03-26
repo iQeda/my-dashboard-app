@@ -85,6 +85,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   const {
     selectedTags,
     selectedCategory,
+    combinedFilter,
+    toggleCombinedFilter,
     multiTagMode,
     searchQuery,
     sortOrder,
@@ -100,7 +102,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     clearFilters,
     setSearchQuery,
     cycleSortOrder,
-  } = useFilter(config?.items ?? []);
+  } = useFilter(config?.items ?? [], { combinedFilter: config?.combinedFilter, multiTagMode: config?.multiTagMode });
 
   const [editingItem, setEditingItem] = useState<DashboardItem | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -284,12 +286,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           pageView={pageView}
           selectedTags={selectedTags}
           selectedCategory={selectedCategory}
-          multiTagMode={multiTagMode}
           showFavoritesOnly={showFavoritesOnly}
           onGoToDashboard={() => navigateTo("dashboard")}
           onToggleTag={(id) => { toggleTag(id); navigateTo("items"); }}
           onToggleCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
-          onToggleMultiTagMode={toggleMultiTagMode}
           onShowAllItems={() => { showAllItems(); navigateTo("items"); }}
           onToggleFavoritesFilter={() => { toggleFavoritesFilter(); navigateTo("items"); }}
           onReorderTagDefs={reorderTagDefs}
@@ -298,6 +298,9 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           onUpdateCategoryDef={updateCategoryDef}
           onDeleteCategoryDef={deleteCategoryDef}
           onReorderCategoryList={reorderCategoryList}
+          initialCategoriesOpen={config.sidebarCategoriesOpen ?? true}
+          initialTagsOpen={config.sidebarTagsOpen ?? true}
+          onToggleSection={updateViewPrefs}
           onOpenSettings={() => setShowSettings(true)}
         />
         <div
@@ -359,12 +362,16 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
               selectedCategory={selectedCategory}
               showFavoritesOnly={showFavoritesOnly}
               typeFilter={typeFilter}
+              combinedFilter={combinedFilter}
+              multiTagMode={multiTagMode}
               tagDefs={config.tagDefs}
               categoryList={config.categoryList ?? []}
               onToggleTag={toggleTag}
               onToggleCategory={toggleCategory}
               onToggleFavoritesFilter={toggleFavoritesFilter}
               onCycleTypeFilter={cycleTypeFilter}
+              onToggleCombinedFilter={() => { toggleCombinedFilter(); updateViewPrefs({ combinedFilter: !combinedFilter }); }}
+              onToggleMultiTagMode={() => { toggleMultiTagMode(); updateViewPrefs({ multiTagMode: !multiTagMode }); }}
               onClearAll={clearFilters}
             />
 
@@ -443,7 +450,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
         <CommandPalette
           items={config.items}
           tagDefs={config.tagDefs}
-          onToggleTag={toggleTag}
+          onToggleTag={(id) => { toggleTag(id); navigateTo("items"); }}
+          onLaunch={launchAndRecord}
           onClose={() => setShowCommandPalette(false)}
         />
       )}

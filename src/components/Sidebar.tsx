@@ -10,12 +10,10 @@ interface SidebarProps {
   readonly pageView: "dashboard" | "items";
   readonly selectedTags: ReadonlySet<string>;
   readonly selectedCategory: string | null;
-  readonly multiTagMode: boolean;
   readonly showFavoritesOnly: boolean;
   readonly onGoToDashboard: () => void;
   readonly onToggleTag: (tagId: string) => void;
   readonly onToggleCategory: (catId: string) => void;
-  readonly onToggleMultiTagMode: () => void;
   readonly onShowAllItems: () => void;
   readonly onToggleFavoritesFilter: () => void;
   readonly onReorderTagDefs: (tagDefs: readonly TagDef[]) => void;
@@ -24,6 +22,9 @@ interface SidebarProps {
   readonly onUpdateCategoryDef: (id: string, updates: Partial<Pick<Category, "label">>) => void;
   readonly onDeleteCategoryDef: (id: string) => void;
   readonly onReorderCategoryList: (list: readonly Category[]) => void;
+  readonly initialCategoriesOpen: boolean;
+  readonly initialTagsOpen: boolean;
+  readonly onToggleSection: (prefs: { sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean }) => void;
   readonly onOpenSettings: () => void;
 }
 
@@ -186,13 +187,30 @@ function SortContextMenu({ x, y, onSortAsc, onSortDesc, onClose }: {
 
 // --- Main Sidebar ---
 export function Sidebar({
-  tagDefs, categoryList, pageView, selectedTags, selectedCategory, multiTagMode, showFavoritesOnly,
-  onGoToDashboard, onToggleTag, onToggleCategory, onToggleMultiTagMode, onShowAllItems, onToggleFavoritesFilter,
+  tagDefs, categoryList, pageView, selectedTags, selectedCategory, showFavoritesOnly,
+  onGoToDashboard, onToggleTag, onToggleCategory, onShowAllItems, onToggleFavoritesFilter,
   onReorderTagDefs, onUpdateTagDef, onDeleteTagDef,
   onUpdateCategoryDef, onDeleteCategoryDef, onReorderCategoryList,
+  initialCategoriesOpen, initialTagsOpen, onToggleSection,
   onOpenSettings,
 }: SidebarProps) {
   const { t } = useI18n();
+  const [categoriesOpen, setCategoriesOpenRaw] = useState(initialCategoriesOpen);
+  const [tagsOpen, setTagsOpenRaw] = useState(initialTagsOpen);
+  const setCategoriesOpen = (v: boolean | ((p: boolean) => boolean)) => {
+    setCategoriesOpenRaw((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      onToggleSection({ sidebarCategoriesOpen: next });
+      return next;
+    });
+  };
+  const setTagsOpen = (v: boolean | ((p: boolean) => boolean)) => {
+    setTagsOpenRaw((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      onToggleSection({ sidebarTagsOpen: next });
+      return next;
+    });
+  };
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState>(null);
   const [sortMenu, setSortMenu] = useState<{ kind: "tag" | "category"; x: number; y: number } | null>(null);
   const [editPanel, setEditPanel] = useState<EditPanelState>(null);
@@ -306,15 +324,19 @@ export function Sidebar({
       {categoryList.length > 0 && (
         <>
           <div className="border-t border-gray-200 dark:border-white/10 my-1" />
-          <div className="flex items-center justify-between">
-            <h2
-              onContextMenu={(e) => { e.preventDefault(); setSortMenu({ kind: "category", x: e.clientX, y: e.clientY }); }}
-              className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-default hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
-              title="Right-click to sort"
-            >{t("categories")}</h2>
-          </div>
+          <button
+            onClick={() => setCategoriesOpen((p) => !p)}
+            onContextMenu={(e) => { e.preventDefault(); setSortMenu({ kind: "category", x: e.clientX, y: e.clientY }); }}
+            className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
+            title="Right-click to sort"
+          >
+            {t("categories")}
+            <svg className={`w-3 h-3 transition-transform ${categoriesOpen ? "" : "-rotate-90"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
           {/* eslint-disable-next-line react-hooks/refs */}
-          {categoryList.map((cat, i) => {
+          {categoriesOpen && categoryList.map((cat, i) => {
             if (editPanel?.kind === "rename-cat" && editPanel.cat.id === cat.id) {
               return <InlineRename key={cat.id} value={cat.label} onSave={(v) => { onUpdateCategoryDef(cat.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
             }
@@ -334,35 +356,38 @@ export function Sidebar({
               </div>
             );
           })}
-          <button
-            onClick={() => onToggleCategory("")}
-            className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-              selectedCategory === "" ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-            }`}
-          >
-            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" /></svg>
-            {t("uncategorized")}
-          </button>
+          {categoriesOpen && (
+            <button
+              onClick={() => onToggleCategory("")}
+              className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+                selectedCategory === "" ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+              }`}
+            >
+              <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" /></svg>
+              {t("uncategorized")}
+            </button>
+          )}
         </>
       )}
 
       {/* Tags */}
       <div className="border-t border-gray-200 dark:border-white/10 my-1" />
       <div className="flex items-center justify-between">
-        <h2
+        <button
+          onClick={() => setTagsOpen((p) => !p)}
           onContextMenu={(e) => { e.preventDefault(); setSortMenu({ kind: "tag", x: e.clientX, y: e.clientY }); }}
-          className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-default hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
+          className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
           title="Right-click to sort"
-        >{t("tags")}</h2>
-        <button onClick={onToggleMultiTagMode}
-          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${multiTagMode ? "bg-blue-500 text-white border-blue-500" : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"}`}
-          title={multiTagMode ? "Multi-select ON" : "Multi-select OFF"}>
-          {t("multi")}
+        >
+          {t("tags")}
+          <svg className={`w-3 h-3 transition-transform ${tagsOpen ? "" : "-rotate-90"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </button>
       </div>
 
       {/* eslint-disable-next-line react-hooks/refs */}
-      {tagDefs.map((tag, i) => {
+      {tagsOpen && tagDefs.map((tag, i) => {
         if (editPanel?.kind === "rename-tag" && editPanel.tag.id === tag.id) {
           return <InlineRename key={tag.id} value={tag.label} onSave={(v) => { onUpdateTagDef(tag.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
         }
