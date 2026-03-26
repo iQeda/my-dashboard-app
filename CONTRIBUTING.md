@@ -30,11 +30,16 @@ cargo tauri dev
 
 ## Release Process
 
-Releases are built locally with updater signing enabled. See the README "Release" section for the full workflow. Key points:
+Releases are fully automated via GitHub Actions (`.github/workflows/release.yml`). To publish a new version:
 
-- `TAURI_SIGNING_PRIVATE_KEY` env var is required for signed builds (key content, not path)
-- `latest.json` and `.sig` files must be included in GitHub Releases for auto-update
-- Update `homebrew-tap` Cask after publishing the release
+1. Bump version in `tauri.conf.json` and `SettingsModal.tsx`
+2. PR → CI pass → merge to `main`
+3. Tag and push: `git tag v0.x.0 && git push origin v0.x.0`
+
+The workflow automatically:
+- Builds a signed Tauri app (using `TAURI_SIGNING_PRIVATE_KEY` from GitHub Secrets)
+- Creates a GitHub Release with `.app.tar.gz`, `.sig`, `.dmg`, and `latest.json`
+- Updates the Homebrew Cask (`iQeda/homebrew-tap`)
 
 ## Reporting Bugs
 

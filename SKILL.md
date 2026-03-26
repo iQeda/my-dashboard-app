@@ -278,7 +278,8 @@ function mapKey(key: string): string {
 
 **注意**:
 - 環境変数名は `TAURI_SIGNING_PRIVATE_KEY`（`_PATH` ではない）。鍵ファイルの**内容**を直接渡す
-- 秘密鍵はリポジトリに含めないこと。CI/CD でビルドする場合は GitHub Secrets 等で管理する
+- 秘密鍵はリポジトリに含めないこと
+- **CI/CD**: `.github/workflows/release.yml` で `TAURI_SIGNING_PRIVATE_KEY` と `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` を GitHub Secrets から参照して自動ビルドしている。ローカルビルドは開発時のみ
 
 **該当ファイル**: `src-tauri/tauri.conf.json`, `.gitignore`
 

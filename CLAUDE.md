@@ -44,6 +44,19 @@ pnpm lint                # ESLint
   - `list_installed_apps()` - Mac インストール済みアプリスキャン
 - `lib.rs` - Tauri Builder にコマンドとプラグイン (dialog, log, global-shortcut, updater, process) を登録。`register_shortcut` / `unregister_all_shortcuts` コマンド。WKWebView の `allowsBackForwardNavigationGestures` を `objc2` クレートで有効化
 
+### CI/CD (`.github/workflows/`)
+
+- `ci.yml` - PR・push 時に TypeScript 型チェック + ESLint + Rust `cargo check`
+- `release.yml` - `v*` タグ push で自動リリース:
+  1. 署名付き Tauri ビルド（`TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` は GitHub Secrets）
+  2. GitHub Release 作成（`.app.tar.gz` + `.sig` + `.dmg` + `latest.json`）
+  3. Homebrew Cask (`iQeda/homebrew-tap`) 自動更新（`HOMEBREW_TAP_TOKEN` で認証）
+
+GitHub Secrets（リリースに必要）:
+- `TAURI_SIGNING_PRIVATE_KEY` - Tauri 署名用秘密鍵の内容
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` - 秘密鍵のパスワード
+- `HOMEBREW_TAP_TOKEN` - `iQeda/homebrew-tap` への push 用 PAT
+
 ### Capabilities (`src-tauri/capabilities/default.json`)
 
 - `core:default`, `dialog:default`, `dialog:allow-open`, `dialog:allow-save`
