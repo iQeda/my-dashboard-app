@@ -84,6 +84,14 @@ const translations = {
   "record": { en: "Record", ja: "記録" },
   "clear": { en: "Clear", ja: "解除" },
   "not_set": { en: "Not set", ja: "未設定" },
+  "check_for_updates": { en: "Check for Updates", ja: "アップデートを確認" },
+  "checking": { en: "Checking...", ja: "確認中..." },
+  "up_to_date": { en: "Up to date", ja: "最新です" },
+  "update_available": { en: "Update available", ja: "アップデートあり" },
+  "update_now": { en: "Update Now", ja: "今すぐ更新" },
+  "downloading": { en: "Downloading...", ja: "ダウンロード中..." },
+  "installing": { en: "Installing... App will restart.", ja: "インストール中... アプリが再起動します。" },
+  "update_failed": { en: "Update failed", ja: "更新に失敗しました" },
   "save_as_profile": { en: "Save as Profile", ja: "プロファイルとして保存" },
   "import_profile_desc": { en: "Import will be saved as a separate profile. The current config will not be overwritten.", ja: "インポートは別プロファイルとして保存されます。現在の設定は上書きされません。" },
   "profile_name": { en: "Profile name", ja: "プロファイル名" },
@@ -121,6 +129,7 @@ export function I18nProvider({ locale, children }: { locale: Locale; children: R
   return <I18nContext.Provider value={{ t, locale }}>{children}</I18nContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useI18n() {
   return useContext(I18nContext);
 }

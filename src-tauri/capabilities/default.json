@@ -10,6 +10,8 @@
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-save",
-    "global-shortcut:default"
+    "global-shortcut:default",
+    "updater:default",
+    "process:default"
   ]
 }

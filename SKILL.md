@@ -254,3 +254,46 @@ function mapKey(key: string): string {
 修飾キー (`Shift`, `Alt`, `CommandOrControl`) は先頭に、通常キーは末尾に配置して `+` で連結する（例: `"CommandOrControl+Shift+Space"`）。
 
 **該当ファイル**: `src/components/SettingsModal.tsx`
+
+---
+
+## #13: Tauri updater にはコード署名キーが必要
+
+**課題**: `tauri-plugin-updater` を使ったアプリ内自動更新では、更新バンドルの署名検証が必須。署名キーがないとビルドが失敗する。
+
+**対応**:
+
+1. 署名キーペアを生成:
+   ```bash
+   cargo tauri signer generate -w src-tauri/keys/myapp.key
+   ```
+2. 秘密鍵は `src-tauri/keys/` に保存（`.gitignore` に `src-tauri/keys/` を追加済み）
+3. ビルド時に環境変数で秘密鍵パスを指定:
+   ```bash
+   TAURI_SIGNING_PRIVATE_KEY_PATH=src-tauri/keys/myapp.key cargo tauri build
+   ```
+4. `tauri.conf.json` に `"createUpdaterArtifacts": true` と `"pubkey"` を設定
+5. GitHub Release に `latest.json` を含めることで、エンドポイント経由で更新チェック
+
+**注意**: 秘密鍵はリポジトリに含めないこと。CI/CD でビルドする場合は GitHub Secrets 等で管理する。
+
+**該当ファイル**: `src-tauri/tauri.conf.json`, `.gitignore`
+
+---
+
+## #14: ESLint `react-hooks/refs` と `react-hooks/set-state-in-effect` ルールが Tauri パターンと衝突
+
+**症状**: ESLint v9 + `eslint-plugin-react-hooks` v7 で `react-hooks/refs`（ref を依存配列に含めろ）と `react-hooks/set-state-in-effect`（effect 内で setState するな）がエラーになる。
+
+**原因**: Tauri アプリでは `configRef` パターン（`useRef` で最新 state を追跡）や、`useEffect` 内でイベントリスナー経由の `setState` が多用される。これらは React の推奨パターンとは異なるが、Tauri の制約上必要な設計。
+
+**回避策**: `eslint.config.js` で該当ルールを `"warn"` に下げる。完全に無効化はせず、意図しない使用は警告で検出する。
+
+```javascript
+rules: {
+  'react-hooks/set-state-in-effect': 'warn',
+  'react-hooks/refs': 'warn',
+},
+```
+
+**該当ファイル**: `eslint.config.js`

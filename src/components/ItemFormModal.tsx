@@ -164,7 +164,7 @@ export function ItemFormModal({
       setSelectedTags([...defaultTags]);
       setSelectedCategory(defaultCategory ?? "");
     }
-  }, [item, tagDefs, categoryList, defaultTags]);
+  }, [item, tagDefs, categoryList, defaultTags, defaultCategory]);
 
   const validate = useCallback((n: string, tgt: string, tp: string) => {
     const e: { name?: string; target?: string } = {};
