@@ -20,6 +20,8 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
   const [configPath, setConfigPath] = useState("");
   const [profiles, setProfiles] = useState<ConfigProfile[]>([]);
   const [recording, setRecording] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available">("idle");
+  const [latestVersion, setLatestVersion] = useState("");
 
   const keysPressed = useRef(new Set<string>());
 
@@ -230,9 +232,38 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
           <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             {t("about")}
           </h3>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            MyDashboard v0.1.0
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              MyDashboard v0.1.0
+            </p>
+            <button
+              onClick={async () => {
+                setUpdateStatus("checking");
+                try {
+                  const res = await fetch("https://api.github.com/repos/iQeda/my-dashboard-app/releases/latest");
+                  const data = await res.json();
+                  const latest = (data.tag_name as string).replace(/^v/, "");
+                  setLatestVersion(latest);
+                  setUpdateStatus(latest === "0.1.0" ? "up-to-date" : "available");
+                } catch {
+                  setUpdateStatus("idle");
+                }
+              }}
+              disabled={updateStatus === "checking"}
+              className="px-2 py-1 rounded text-[11px] font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {updateStatus === "checking" ? t("checking") : t("check_for_updates")}
+            </button>
+          </div>
+          {updateStatus === "up-to-date" && (
+            <p className="text-xs text-green-500">{t("up_to_date")} (v{latestVersion})</p>
+          )}
+          {updateStatus === "available" && (
+            <div className="px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/40">
+              <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">{t("update_available")}: v{latestVersion}</p>
+              <p className="text-[11px] text-yellow-600 dark:text-yellow-400 mt-1 font-mono select-all">{t("update_instructions")}</p>
+            </div>
+          )}
         </section>
 
         <div className="flex justify-end">
