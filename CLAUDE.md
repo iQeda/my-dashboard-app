@@ -42,11 +42,11 @@ pnpm lint                # ESLint
   - `import_config(path, profile_name)` - 別名プロファイルとして保存
   - `list_config_profiles()` / `switch_config(filename)` - プロファイル管理
   - `list_installed_apps()` - Mac インストール済みアプリスキャン
-- `lib.rs` - Tauri Builder にコマンドとプラグイン (dialog, log) を登録
+- `lib.rs` - Tauri Builder にコマンドとプラグイン (dialog, log, global-shortcut) を登録。`register_shortcut` / `unregister_all_shortcuts` コマンド。WKWebView の `allowsBackForwardNavigationGestures` を `objc2` クレートで有効化
 
 ### React Frontend (`src/`)
 
-- `App.tsx` - `App`(I18nProvider) + `AppContent`(メインUI) の2層構造
+- `App.tsx` - `App`(I18nProvider) + `AppContent`(メインUI) の2層構造。`pageView` state (`"dashboard"` | `"items"`) でページ切替。`navigateTo()` は `setPageView` + `history.pushState` でブラウザ履歴対応。`launchAndRecord()` でアイテム起動 + アクセス記録を一元化
 - `i18n.tsx` - 翻訳システム。`I18nProvider` + `useI18n()` → `t(key)` で全 UI テキストを翻訳
 - `useConfig` hook - 設定の CRUD。`configRef` パターンで最新 state を参照
   - addItem, updateItem, deleteItem, duplicateItem, toggleFavorite
@@ -58,6 +58,8 @@ pnpm lint                # ESLint
 - `useFilter` hook - フィルタリング
   - selectedTags (Set), selectedCategory (null/""/catId), multiTagMode (AND 条件), showFavoritesOnly
   - searchQuery, sortOrder, typeFilter (all/app/url)
+- `DashboardOverview.tsx` - Dashboard ページ。Favorites（ItemCard S）、Categories、Tags（件数付き）、Recent items（ItemCard S、最大20件）を表示
+- ItemCard/ItemRow は `invoke` を直接呼ばず、親から `onLaunch` コールバックを受け取る設計
 - コンポーネントは全て props ベースの named export 関数コンポーネント
 
 ### Data Flow
@@ -75,7 +77,8 @@ Switch: Rust switch_config → config.json を上書き → reload
 - `TagDef` (id, label, color) - タグ定義。旧名 `Category`（リネーム済み）
 - `Category` (id, label) - カテゴリ定義。アイテムに1つだけ設定可能
 - `DashboardItem` - id, name, type, target, tags[], icon?, favorite?, category?, description?
-- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?
+- `RecentAccessEntry` - id, at (ISO 8601 timestamp)
+- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?
 
 ## Config File Location
 
@@ -97,6 +100,10 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **Duplicate は `XXX (Copy)`**: ソートでオリジナル直下に並ぶ命名規則
 - **サイドバー幅リサイズ**: Pointer Events でドラッグ、config に永続化
 - **見出し右クリックソート**: Categories/Tags の見出しを右クリックで昇順/降順ソート
+- **Dashboard がデフォルトビュー**: アプリ起動時は Dashboard ページを表示
+- **Back/Forward ナビゲーション**: `history.pushState`/`popstate` + WKWebView `allowsBackForwardNavigationGestures` (Magic Mouse スワイプ)
+- **`launchAndRecord()` で起動一元化**: ItemCard/ItemRow は `onLaunch` コールバック経由。直接 `invoke` しない
+- **Global Shortcut**: `tauri-plugin-global-shortcut` でアプリ非フォーカス時もランチャー表示。Settings の Record ボタンで設定（SKILL.md #11, #12）
 
 ## Tauri WebView Gotchas
 
@@ -111,6 +118,8 @@ SKILL.md に詳細を記載。
 | `overflow-y-auto` が効かないケースあり | `overflow-y-scroll` + `overscroll-contain` |
 | `createPortal` のクリックがモーダル背景に伝播 | `onMouseDown` + `e.target === e.currentTarget` |
 | `createPortal` の Escape がモーダルに伝播 | `onOpenChange` で子コンポーネントの open 状態を追跡 |
+| `input onKeyDown` でショートカットキー録音が不完全 | `window.addEventListener("keydown"/"keyup", handler, true)` (capture phase) |
+| `e.key` が Tauri shortcut 形式と異なる | KEY_MAP でマッピング (例: `" "` → `"Space"`, `"ArrowUp"` → `"Up"`) |
 
 ## Conventions
 

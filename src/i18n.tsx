@@ -23,6 +23,8 @@ const translations = {
   "loading": { en: "Loading...", ja: "読み込み中..." },
 
   // Sidebar
+  "dashboard": { en: "Dashboard", ja: "ダッシュボード" },
+  "recent": { en: "Recent", ja: "最近のアクセス" },
   "all_items": { en: "All Items", ja: "すべてのアイテム" },
   "favorites": { en: "Favorites", ja: "お気に入り" },
   "categories": { en: "Categories", ja: "カテゴリ" },
@@ -77,6 +79,11 @@ const translations = {
   "export_config": { en: "Export Config", ja: "設定をエクスポート" },
   "about": { en: "About", ja: "バージョン情報" },
   "language": { en: "Language", ja: "言語" },
+  "global_shortcut": { en: "Global Shortcut", ja: "グローバルショートカット" },
+  "press_to_record": { en: "Press keys to record...", ja: "キーを押して記録..." },
+  "record": { en: "Record", ja: "記録" },
+  "clear": { en: "Clear", ja: "解除" },
+  "not_set": { en: "Not set", ja: "未設定" },
   "save_as_profile": { en: "Save as Profile", ja: "プロファイルとして保存" },
   "import_profile_desc": { en: "Import will be saved as a separate profile. The current config will not be overwritten.", ja: "インポートは別プロファイルとして保存されます。現在の設定は上書きされません。" },
   "profile_name": { en: "Profile name", ja: "プロファイル名" },

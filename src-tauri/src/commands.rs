@@ -51,6 +51,16 @@ pub struct AppConfig {
     pub locale: Option<String>,
     #[serde(rename = "sidebarWidth", skip_serializing_if = "Option::is_none")]
     pub sidebar_width: Option<f64>,
+    #[serde(rename = "recentAccess", skip_serializing_if = "Option::is_none")]
+    pub recent_access: Option<Vec<RecentAccessEntry>>,
+    #[serde(rename = "globalShortcut", skip_serializing_if = "Option::is_none")]
+    pub global_shortcut: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentAccessEntry {
+    pub id: String,
+    pub at: f64,
 }
 
 fn icloud_config_dir() -> Option<PathBuf> {

@@ -7,10 +7,12 @@ import { useI18n } from "../i18n";
 interface SidebarProps {
   readonly tagDefs: readonly TagDef[];
   readonly categoryList: readonly Category[];
+  readonly pageView: "dashboard" | "items";
   readonly selectedTags: ReadonlySet<string>;
   readonly selectedCategory: string | null;
   readonly multiTagMode: boolean;
   readonly showFavoritesOnly: boolean;
+  readonly onGoToDashboard: () => void;
   readonly onToggleTag: (tagId: string) => void;
   readonly onToggleCategory: (catId: string) => void;
   readonly onToggleMultiTagMode: () => void;
@@ -184,8 +186,8 @@ function SortContextMenu({ x, y, onSortAsc, onSortDesc, onClose }: {
 
 // --- Main Sidebar ---
 export function Sidebar({
-  tagDefs, categoryList, selectedTags, selectedCategory, multiTagMode, showFavoritesOnly,
-  onToggleTag, onToggleCategory, onToggleMultiTagMode, onShowAllItems, onToggleFavoritesFilter,
+  tagDefs, categoryList, pageView, selectedTags, selectedCategory, multiTagMode, showFavoritesOnly,
+  onGoToDashboard, onToggleTag, onToggleCategory, onToggleMultiTagMode, onShowAllItems, onToggleFavoritesFilter,
   onReorderTagDefs, onUpdateTagDef, onDeleteTagDef,
   onUpdateCategoryDef, onDeleteCategoryDef, onReorderCategoryList,
   onOpenSettings,
@@ -272,9 +274,19 @@ export function Sidebar({
 
   return (
     <aside className="flex-1 flex flex-col gap-2 p-4 bg-gray-50/80 dark:bg-white/5 overflow-y-auto">
+      <button onClick={onGoToDashboard}
+        className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
+          pageView === "dashboard"
+            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
+            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+        }`}>
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" /></svg>
+        {t("dashboard")}
+      </button>
+
       <button onClick={onShowAllItems}
         className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-          selectedTags.size === 0 && selectedCategory === null && !showFavoritesOnly
+          pageView === "items" && selectedTags.size === 0 && selectedCategory === null && !showFavoritesOnly
             ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
             : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
         }`}>

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import type { DashboardItem, TagDef } from "../types";
 import { ContextMenu } from "./ContextMenu";
 import { useI18n } from "../i18n";
@@ -11,6 +10,7 @@ interface ItemRowProps {
   readonly onToggleFavorite: (id: string) => void;
   readonly onDuplicate: (id: string) => void;
   readonly onDelete: (id: string) => void;
+  readonly onLaunch: (item: DashboardItem) => void;
 }
 
 const DEFAULT_ICONS: Record<string, string> = {
@@ -18,21 +18,11 @@ const DEFAULT_ICONS: Record<string, string> = {
   url: "\uD83C\uDF10",
 };
 
-export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete }: ItemRowProps) {
+export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch }: ItemRowProps) {
   const { t } = useI18n();
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
 
-  const handleClick = async () => {
-    try {
-      if (item.type === "app") {
-        await invoke("launch_app", { name: item.target });
-      } else {
-        await invoke("open_url", { url: item.target });
-      }
-    } catch (e) {
-      console.error("Failed to launch:", e);
-    }
-  };
+  const handleClick = () => { onLaunch(item); };
 
   const tagColors = item.tags
     .map((tag) => tagDefs.find((c) => c.id === tag))

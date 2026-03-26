@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useConfig } from "./hooks/useConfig";
 import { useFilter } from "./hooks/useFilter";
 import { Sidebar } from "./components/Sidebar";
@@ -12,7 +13,8 @@ import { SettingsModal } from "./components/SettingsModal";
 import { ActiveFilters } from "./components/ActiveFilters";
 import { I18nProvider, useI18n } from "./i18n";
 import type { Locale } from "./i18n";
-import type { DashboardItem, TagDef, Category, CardSize, ViewMode } from "./types";
+import { DashboardOverview } from "./components/DashboardOverview";
+import type { DashboardItem, TagDef, Category, CardSize, ViewMode, PageView } from "./types";
 
 export default function App() {
   const {
@@ -75,6 +77,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     deleteCategoryDef,
     reorderCategoryList,
     updateViewPrefs,
+    recordAccess,
+    updateGlobalShortcut,
     reload,
     exportConfig,
   } = useConfig();
@@ -102,9 +106,35 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   const [showModal, setShowModal] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [pageView, setPageViewRaw] = useState<PageView>("dashboard");
+
+  const navigateTo = useCallback((view: PageView) => {
+    setPageViewRaw(view);
+    history.pushState({ pageView: view }, "", "");
+  }, []);
+
+  useEffect(() => {
+    history.replaceState({ pageView: "dashboard" }, "", "");
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state as { pageView?: PageView } | null;
+      if (state?.pageView) {
+        setPageViewRaw(state.pageView);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const [cardSize, setCardSize] = useState<CardSize>(config?.cardSize ?? "lg");
   const [viewMode, setViewMode] = useState<ViewMode>(config?.viewMode ?? "list");
   const [sidebarWidth, setSidebarWidth] = useState(config?.sidebarWidth ?? 208);
+
+  // Listen for global shortcut event
+  useEffect(() => {
+    const unlisten = listen("show-command-palette", () => {
+      setShowCommandPalette(true);
+    });
+    return () => { unlisten.then((f) => f()); };
+  }, []);
 
   // Sync from config on first load
   useEffect(() => {
@@ -116,6 +146,19 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sidebar resize
+  const launchAndRecord = useCallback(async (item: DashboardItem) => {
+    try {
+      if (item.type === "app") {
+        await invoke("launch_app", { name: item.target });
+      } else {
+        await invoke("open_url", { url: item.target });
+      }
+      await recordAccess(item.id);
+    } catch (e) {
+      console.error("Failed to launch:", e);
+    }
+  }, [recordAccess]);
+
   const sidebarResizing = useRef(false);
   const handleSidebarResizeStart = useCallback((e: React.PointerEvent) => {
     sidebarResizing.current = true;
@@ -238,15 +281,17 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
         <Sidebar
           tagDefs={config.tagDefs}
           categoryList={config.categoryList ?? []}
+          pageView={pageView}
           selectedTags={selectedTags}
           selectedCategory={selectedCategory}
           multiTagMode={multiTagMode}
           showFavoritesOnly={showFavoritesOnly}
-          onToggleTag={toggleTag}
-          onToggleCategory={toggleCategory}
+          onGoToDashboard={() => navigateTo("dashboard")}
+          onToggleTag={(id) => { toggleTag(id); navigateTo("items"); }}
+          onToggleCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
           onToggleMultiTagMode={toggleMultiTagMode}
-          onShowAllItems={showAllItems}
-          onToggleFavoritesFilter={toggleFavoritesFilter}
+          onShowAllItems={() => { showAllItems(); navigateTo("items"); }}
+          onToggleFavoritesFilter={() => { toggleFavoritesFilter(); navigateTo("items"); }}
           onReorderTagDefs={reorderTagDefs}
           onUpdateTagDef={updateTagDef}
           onDeleteTagDef={deleteTagDef}
@@ -264,76 +309,101 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       </div>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex gap-2 p-4 pb-0">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} sortOrder={sortOrder} onToggleSort={cycleSortOrder} cardSize={cardSize} onCycleCardSize={cycleCardSize} viewMode={viewMode} onToggleViewMode={handleToggleViewMode} typeFilter={typeFilter} onCycleTypeFilter={cycleTypeFilter} shortcutsDisabled={showModal || showCommandPalette || showSettings} onOpenCommandPalette={() => setShowCommandPalette(true)} />
-          <button
-            onClick={async () => {
-              for (const item of filteredItems) {
-                try {
-                  if (item.type === "app") {
-                    await invoke("launch_app", { name: item.target });
-                  } else {
-                    await invoke("open_url", { url: item.target });
-                  }
-                } catch (e) {
-                  console.error("Failed to launch:", item.name, e);
-                }
-              }
-            }}
-            disabled={filteredItems.length === 0 || (selectedTags.size === 0 && !showFavoritesOnly)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-white/60 dark:bg-white/10 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 disabled:opacity-30 disabled:cursor-default"
-            title={`${t("open_all")} ${filteredItems.length}`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            {t("open_all")} ({filteredItems.length})
-          </button>
-          <button
-            onClick={handleAdd}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-blue-500 hover:bg-blue-600 border-blue-500 text-white"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            {t("add")}
-          </button>
-        </header>
-
-        <ActiveFilters
-          selectedTags={selectedTags}
-          selectedCategory={selectedCategory}
-          showFavoritesOnly={showFavoritesOnly}
-          typeFilter={typeFilter}
-          tagDefs={config.tagDefs}
-          categoryList={config.categoryList ?? []}
-          onToggleTag={toggleTag}
-          onToggleCategory={toggleCategory}
-          onToggleFavoritesFilter={toggleFavoritesFilter}
-          onCycleTypeFilter={cycleTypeFilter}
-          onClearAll={clearFilters}
-        />
-
-        <div className="flex-1 overflow-y-auto">
-          <Dashboard
-            items={filteredItems}
+        {pageView === "dashboard" ? (
+          <DashboardOverview
+            items={config.items}
             tagDefs={config.tagDefs}
             categoryList={config.categoryList ?? []}
-            cardSize={cardSize}
-            viewMode={viewMode}
+            recentAccess={config.recentAccess ?? []}
+            onSelectTag={(id) => { toggleTag(id); navigateTo("items"); }}
+            onSelectCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
+            onSelectFavorites={() => { toggleFavoritesFilter(); navigateTo("items"); }}
+            onLaunchItem={launchAndRecord}
             onEdit={handleEdit}
             onToggleFavorite={toggleFavorite}
             onDuplicate={duplicateItem}
             onDelete={deleteItem}
-            onAdd={handleAdd}
           />
-        </div>
+        ) : (
+          <>
+            <header className="flex gap-2 p-4 pb-0">
+              <SearchBar value={searchQuery} onChange={setSearchQuery} sortOrder={sortOrder} onToggleSort={cycleSortOrder} cardSize={cardSize} onCycleCardSize={cycleCardSize} viewMode={viewMode} onToggleViewMode={handleToggleViewMode} typeFilter={typeFilter} onCycleTypeFilter={cycleTypeFilter} shortcutsDisabled={showModal || showCommandPalette || showSettings} onOpenCommandPalette={() => setShowCommandPalette(true)} />
+              <button
+                onClick={async () => {
+                  for (const item of filteredItems) {
+                    await launchAndRecord(item);
+                  }
+                }}
+                disabled={filteredItems.length === 0 || (selectedTags.size === 0 && !showFavoritesOnly)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-white/60 dark:bg-white/10 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 disabled:opacity-30 disabled:cursor-default"
+                title={`${t("open_all")} ${filteredItems.length}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {t("open_all")} ({filteredItems.length})
+              </button>
+              <button
+                onClick={handleAdd}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-blue-500 hover:bg-blue-600 border-blue-500 text-white"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                {t("add")}
+              </button>
+            </header>
+
+            <ActiveFilters
+              selectedTags={selectedTags}
+              selectedCategory={selectedCategory}
+              showFavoritesOnly={showFavoritesOnly}
+              typeFilter={typeFilter}
+              tagDefs={config.tagDefs}
+              categoryList={config.categoryList ?? []}
+              onToggleTag={toggleTag}
+              onToggleCategory={toggleCategory}
+              onToggleFavoritesFilter={toggleFavoritesFilter}
+              onCycleTypeFilter={cycleTypeFilter}
+              onClearAll={clearFilters}
+            />
+
+            <div className="flex-1 overflow-y-auto">
+              <Dashboard
+                items={filteredItems}
+                tagDefs={config.tagDefs}
+                categoryList={config.categoryList ?? []}
+                cardSize={cardSize}
+                viewMode={viewMode}
+                onEdit={handleEdit}
+                onToggleFavorite={toggleFavorite}
+                onDuplicate={duplicateItem}
+                onDelete={deleteItem}
+                onLaunch={launchAndRecord}
+                onAdd={handleAdd}
+              />
+            </div>
+          </>
+        )}
       </main>
 
       {showSettings && (
         <SettingsModal
           locale={locale}
+          globalShortcut={config.globalShortcut ?? ""}
           onChangeLocale={onChangeLocale}
+          onChangeGlobalShortcut={async (shortcut) => {
+            try {
+              if (shortcut) {
+                await invoke("register_shortcut", { shortcut });
+              } else {
+                await invoke("unregister_all_shortcuts");
+              }
+              await updateGlobalShortcut(shortcut);
+            } catch (e) {
+              console.error("Failed to register shortcut:", e);
+            }
+          }}
           onImport={handleImport}
           onExport={handleExport}
           onSwitchProfile={async (filename: string) => {

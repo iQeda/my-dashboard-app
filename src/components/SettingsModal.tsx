@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { ConfigProfile } from "../types";
 import { useI18n } from "../i18n";
@@ -6,17 +6,73 @@ import type { Locale } from "../i18n";
 
 interface SettingsModalProps {
   readonly locale: Locale;
+  readonly globalShortcut: string;
   readonly onChangeLocale: (locale: Locale) => void;
+  readonly onChangeGlobalShortcut: (shortcut: string | undefined) => void;
   readonly onImport: () => void;
   readonly onExport: () => void;
   readonly onSwitchProfile: (filename: string) => void;
   readonly onClose: () => void;
 }
 
-export function SettingsModal({ locale, onChangeLocale, onImport, onExport, onSwitchProfile, onClose }: SettingsModalProps) {
+export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChangeGlobalShortcut, onImport, onExport, onSwitchProfile, onClose }: SettingsModalProps) {
   const { t } = useI18n();
   const [configPath, setConfigPath] = useState("");
   const [profiles, setProfiles] = useState<ConfigProfile[]>([]);
+  const [recording, setRecording] = useState(false);
+
+  const keysPressed = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!recording) return;
+
+    const KEY_MAP: Record<string, string> = {
+      " ": "Space", "ArrowUp": "Up", "ArrowDown": "Down", "ArrowLeft": "Left", "ArrowRight": "Right",
+      "Escape": "Escape", "Enter": "Return", "Backspace": "Backspace", "Delete": "Delete", "Tab": "Tab",
+    };
+
+    const toShortcutString = (): string | null => {
+      const mods: string[] = [];
+      const keys: string[] = [];
+      for (const k of keysPressed.current) {
+        if (k === "Meta" || k === "Control") { if (!mods.includes("CommandOrControl")) mods.push("CommandOrControl"); }
+        else if (k === "Shift") mods.push("Shift");
+        else if (k === "Alt") mods.push("Alt");
+        else {
+          const mapped = KEY_MAP[k] ?? (k.length === 1 ? k.toUpperCase() : k);
+          keys.push(mapped);
+        }
+      }
+      if (mods.length === 0 || keys.length === 0) return null;
+      return [...mods, ...keys].join("+");
+    };
+
+    const onDown = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      keysPressed.current.add(e.key);
+    };
+
+    const onUp = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const shortcut = toShortcutString();
+      keysPressed.current.delete(e.key);
+      if (shortcut) {
+        setRecording(false);
+        keysPressed.current.clear();
+        onChangeGlobalShortcut(shortcut);
+      }
+    };
+
+    window.addEventListener("keydown", onDown, true);
+    window.addEventListener("keyup", onUp, true);
+    return () => {
+      window.removeEventListener("keydown", onDown, true);
+      window.removeEventListener("keyup", onUp, true);
+      keysPressed.current.clear();
+    };
+  }, [recording, onChangeGlobalShortcut]);
 
   useEffect(() => {
     invoke<string>("get_config_path").then(setConfigPath).catch(console.error);
@@ -61,6 +117,37 @@ export function SettingsModal({ locale, onChangeLocale, onImport, onExport, onSw
             >
               JA
             </button>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            {t("global_shortcut")}
+          </h3>
+          <div className="flex items-center gap-2">
+            {recording ? (
+              <span className="flex-1 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-500/40 text-sm text-blue-700 dark:text-blue-300 animate-pulse">
+                {t("press_to_record")}
+              </span>
+            ) : (
+              <span className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                {globalShortcut || t("not_set")}
+              </span>
+            )}
+            <button
+              onClick={() => setRecording(true)}
+              className="px-3 py-2 rounded-lg text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors cursor-pointer"
+            >
+              {t("record")}
+            </button>
+            {globalShortcut && (
+              <button
+                onClick={() => onChangeGlobalShortcut(undefined)}
+                className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                {t("clear")}
+              </button>
+            )}
           </div>
         </section>
 

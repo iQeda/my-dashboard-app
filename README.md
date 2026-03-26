@@ -44,6 +44,7 @@ cargo tauri build
 | `⌘Enter` | モーダル内で Save |
 | `⌘,` | Settings |
 | `Escape` | モーダル / パレットを閉じる |
+| Global Shortcut (カスタム) | アプリ非フォーカス時でもランチャー（コマンドパレット）を表示。Settings で設定 |
 
 ## Features
 
@@ -56,6 +57,7 @@ cargo tauri build
 - **Description** - アイテム説明文（カード: 最大2行省略 / リスト: 1行省略）
 - **Favorites** - 星マークでお気に入り登録
 - **Open All** - フィルタリング中のアイテムを一括起動（All Items 表示中は無効）
+- **Recent Access Tracking** - アイテム起動時にアクセス日時を記録（最大20件、config に保存）
 
 ### Categories
 - アイテムに1つだけ設定できるカテゴリ（Tags とは別概念）
@@ -77,7 +79,9 @@ cargo tauri build
 
 ### UI
 - **ビュー切替** - カードビュー / リストビュー（デフォルト: リスト）
+- **Dashboard ページ** - ランディングページ。Favorites（ItemCard S）、Categories、Tags（件数付き）、Recent items（ItemCard S、最大20件）を表示。アプリ起動時のデフォルトビュー
 - **コマンドパレット** (`⌘K`) - アイテム + タグの統合検索。キーボードで選択・実行
+- **Back/Forward ナビゲーション** - History API (`pushState`/`popstate`) + Magic Mouse スワイプジェスチャー対応
 - **カードサイズ切替** - S / M / L の3段階（カードビュー時のみ）
 - **ソート** - A→Z / Z→A（デフォルト昇順）
 - **タイプフィルター** - All / App / Web
@@ -89,11 +93,12 @@ cargo tauri build
 - ビューモード・カードサイズ・サイドバー幅は config に保存（次回起動時に復元）
 
 ### Sidebar
+- **Dashboard** - ダッシュボード概要ページ（ホームアイコン）
 - **All Items** - 全アイテム表示
 - **Favorites** - お気に入りフィルター
 - **Categories** - カテゴリ絞り込み + Uncategorized（ドラッグ並替・右クリック編集・見出しソート）
 - **Tags** - シングル / マルチ選択トグル付き（ドラッグ並替・右クリック編集・見出しソート）
-- **Settings** (`⌘,`) - 設定画面を開く
+- **Settings** (`⌘,`) - 設定画面を開く（Global Shortcut の Record ボタンでカスタムショートカット設定可能）
 - サイドバー幅はドラッグでリサイズ可能（160px〜400px、config に保存）
 
 ### Data & Profiles
@@ -117,7 +122,7 @@ my-dashboard-app/
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 ├── src/                        # React フロントエンド
-│   ├── App.tsx                 # ルートレイアウト・キーボードショートカット・I18nProvider
+│   ├── App.tsx                 # App(I18nProvider) + AppContent(pageView state, navigateTo, launchAndRecord)
 │   ├── main.tsx                # エントリーポイント
 │   ├── i18n.tsx                # 翻訳システム (EN/JA)
 │   ├── constants.ts            # TAG_COLORS 定義
@@ -126,6 +131,7 @@ my-dashboard-app/
 │   │   ├── useConfig.ts        # 設定の CRUD・永続化
 │   │   └── useFilter.ts        # フィルタ・ソート・検索
 │   ├── components/
+│   │   ├── DashboardOverview.tsx # Dashboard ページ (Favorites, Categories, Tags, Recent)
 │   │   ├── Dashboard.tsx       # カード/リストビュー + Category グループ表示
 │   │   ├── ItemCard.tsx        # カードビュー用アイテム
 │   │   ├── ItemRow.tsx         # リストビュー用アイテム
@@ -174,7 +180,11 @@ my-dashboard-app/
   "viewMode": "list",
   "cardSize": "lg",
   "sidebarWidth": 208,
-  "locale": "en"
+  "locale": "en",
+  "recentAccess": [
+    { "id": "claude", "at": "2026-03-26T12:00:00.000Z" }
+  ],
+  "globalShortcut": "CommandOrControl+Shift+Space"
 }
 ```
 
@@ -185,6 +195,8 @@ my-dashboard-app/
 - `categoryList`: カテゴリ定義 (id, label)
 - `emojiHistory`: 使用済み絵文字の履歴 (最大20個)
 - `viewMode`, `cardSize`, `sidebarWidth`, `locale`: UI 状態の永続化
+- `recentAccess`: 最近アクセスしたアイテムの配列 (`{id, at}` 形式、最大20件)
+- `globalShortcut`: システム全体のグローバルショートカットキー (例: `"CommandOrControl+Shift+Space"`)
 
 ## Profile System
 

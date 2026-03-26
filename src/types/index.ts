@@ -1,6 +1,7 @@
 export type ItemType = "app" | "url";
 export type CardSize = "sm" | "md" | "lg";
 export type ViewMode = "card" | "list";
+export type PageView = "dashboard" | "items";
 
 export interface DashboardItem {
   readonly id: string;
@@ -34,6 +35,13 @@ export interface AppConfig {
   readonly emojiHistory?: readonly string[];
   readonly locale?: string;
   readonly sidebarWidth?: number;
+  readonly globalShortcut?: string;
+  readonly recentAccess?: readonly RecentAccessEntry[];
+}
+
+export interface RecentAccessEntry {
+  readonly id: string;
+  readonly at: number;
 }
 
 export interface InstalledApp {

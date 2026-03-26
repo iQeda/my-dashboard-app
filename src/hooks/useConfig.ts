@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { AppConfig, DashboardItem, TagDef, Category, ViewMode, CardSize } from "../types";
+import type { AppConfig, DashboardItem, TagDef, Category, ViewMode, CardSize, RecentAccessEntry } from "../types";
 
 export function useConfig() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -240,6 +240,28 @@ export function useConfig() {
     [saveConfig],
   );
 
+  const updateGlobalShortcut = useCallback(
+    async (globalShortcut: string | undefined) => {
+      const current = configRef.current;
+      if (!current) return;
+      const newConfig: AppConfig = { ...current, globalShortcut };
+      await saveConfig(newConfig);
+    },
+    [saveConfig],
+  );
+
+  const recordAccess = useCallback(
+    async (itemId: string) => {
+      const current = configRef.current;
+      if (!current) return;
+      const prev = (current.recentAccess ?? []).filter((e) => e.id !== itemId);
+      const next: readonly RecentAccessEntry[] = [{ id: itemId, at: Date.now() }, ...prev].slice(0, 20);
+      const newConfig: AppConfig = { ...current, recentAccess: next };
+      await saveConfig(newConfig);
+    },
+    [saveConfig],
+  );
+
   const reload = loadConfig;
 
   const exportConfig = useCallback(async (path: string) => {
@@ -269,6 +291,8 @@ export function useConfig() {
     updateLocale,
     updateViewPrefs,
     addEmojiToHistory,
+    recordAccess,
+    updateGlobalShortcut,
     exportConfig,
   };
 }

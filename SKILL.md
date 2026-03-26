@@ -180,3 +180,77 @@ await saveConfig(newConfig);
 **解決**: `XXX (Copy)` にすることで、ソートでオリジナル直下に並ぶ。
 
 **該当ファイル**: `src/hooks/useConfig.ts` (`duplicateItem`)
+
+---
+
+## #11: Global Shortcut キー録音が `input onKeyDown` で動作しない
+
+**症状**: Settings のショートカット設定で `<input onKeyDown>` を使ってキーコンビネーションを録音しようとすると、修飾キー（Cmd, Shift 等）のみの押下が取れない、またはイベントがフォーカス外で発火しない。
+
+**原因**: Tauri v2 の WKWebView では `<input>` 要素の `onKeyDown` イベントが修飾キーの組み合わせを正しくキャプチャできないケースがある。特に `keydown` が input にフォーカスしていない場合に発火しない。
+
+**回避策**: `window.addEventListener("keydown", handler, true)` と `window.addEventListener("keyup", handler, true)` を capture phase で登録。`keydown` で押されたキーを `Set` に蓄積し、`keyup` で全キーが離された時点でショートカット文字列を生成する。
+
+```typescript
+// Recording ボタンが押された後のロジック
+useEffect(() => {
+  if (!isRecording) return;
+  const keys = new Set<string>();
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    keys.add(e.key);
+  };
+
+  const onKeyUp = (e: KeyboardEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // keys Set から shortcut 文字列を生成
+    const shortcut = buildShortcutString(keys);
+    if (shortcut) setRecordedShortcut(shortcut);
+    keys.delete(e.key);
+    if (keys.size === 0) stopRecording();
+  };
+
+  window.addEventListener("keydown", onKeyDown, true);
+  window.addEventListener("keyup", onKeyUp, true);
+  return () => {
+    window.removeEventListener("keydown", onKeyDown, true);
+    window.removeEventListener("keyup", onKeyUp, true);
+  };
+}, [isRecording]);
+```
+
+**該当ファイル**: `src/components/SettingsModal.tsx`
+
+---
+
+## #12: `e.key` の値が Tauri ショートカット形式と異なる
+
+**症状**: `e.key` で取得したキー名をそのまま `tauri-plugin-global-shortcut` に渡すと認識されない。例: スペースキーが `" "` (空白文字)、矢印キーが `"ArrowUp"` など。
+
+**原因**: ブラウザの `KeyboardEvent.key` の値と Tauri のショートカット形式（Electron 互換）が異なる。
+
+**回避策**: KEY_MAP を定義して `e.key` → Tauri 形式に変換する。
+
+```typescript
+const KEY_MAP: Record<string, string> = {
+  " ": "Space",
+  "ArrowUp": "Up",
+  "ArrowDown": "Down",
+  "ArrowLeft": "Left",
+  "ArrowRight": "Right",
+  "Control": "CommandOrControl",
+  "Meta": "CommandOrControl",
+  // ... 他のキーも必要に応じて追加
+};
+
+function mapKey(key: string): string {
+  return KEY_MAP[key] ?? key;
+}
+```
+
+修飾キー (`Shift`, `Alt`, `CommandOrControl`) は先頭に、通常キーは末尾に配置して `+` で連結する（例: `"CommandOrControl+Shift+Space"`）。
+
+**該当ファイル**: `src/components/SettingsModal.tsx`

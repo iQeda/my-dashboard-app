@@ -29,3 +29,5 @@ tauri = { version = "2.10.3", features = [] }
 tauri-plugin-log = "2"
 dirs = "6"
 tauri-plugin-dialog = "2.6.0"
+objc2 = "0.6.4"
+tauri-plugin-global-shortcut = "2.3.1"
