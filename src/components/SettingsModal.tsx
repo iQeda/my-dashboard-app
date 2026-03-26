@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import type { ConfigProfile } from "../types";
 import { useI18n } from "../i18n";
 import type { Locale } from "../i18n";
@@ -20,8 +22,9 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
   const [configPath, setConfigPath] = useState("");
   const [profiles, setProfiles] = useState<ConfigProfile[]>([]);
   const [recording, setRecording] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available">("idle");
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "downloading" | "installing" | "failed">("idle");
   const [latestVersion, setLatestVersion] = useState("");
+  const updateRef = useRef<Awaited<ReturnType<typeof check>> | null>(null);
 
   const keysPressed = useRef(new Set<string>());
 
@@ -240,29 +243,57 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
               onClick={async () => {
                 setUpdateStatus("checking");
                 try {
-                  const res = await fetch("https://api.github.com/repos/iQeda/my-dashboard-app/releases/latest");
-                  const data = await res.json();
-                  const latest = (data.tag_name as string).replace(/^v/, "");
-                  setLatestVersion(latest);
-                  setUpdateStatus(latest === "0.1.0" ? "up-to-date" : "available");
+                  const update = await check();
+                  updateRef.current = update;
+                  if (update) {
+                    setLatestVersion(update.version);
+                    setUpdateStatus("available");
+                  } else {
+                    setUpdateStatus("up-to-date");
+                  }
                 } catch {
-                  setUpdateStatus("idle");
+                  setUpdateStatus("failed");
                 }
               }}
-              disabled={updateStatus === "checking"}
+              disabled={updateStatus === "checking" || updateStatus === "downloading" || updateStatus === "installing"}
               className="px-2 py-1 rounded text-[11px] font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {updateStatus === "checking" ? t("checking") : t("check_for_updates")}
             </button>
           </div>
           {updateStatus === "up-to-date" && (
-            <p className="text-xs text-green-500">{t("up_to_date")} (v{latestVersion})</p>
+            <p className="text-xs text-green-500">{t("up_to_date")}</p>
           )}
           {updateStatus === "available" && (
-            <div className="px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/40">
+            <div className="flex items-center gap-2">
               <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">{t("update_available")}: v{latestVersion}</p>
-              <p className="text-[11px] text-yellow-600 dark:text-yellow-400 mt-1 font-mono select-all">{t("update_instructions")}</p>
+              <button
+                onClick={async () => {
+                  const update = updateRef.current;
+                  if (!update) return;
+                  try {
+                    setUpdateStatus("downloading");
+                    await update.downloadAndInstall();
+                    setUpdateStatus("installing");
+                    await relaunch();
+                  } catch {
+                    setUpdateStatus("failed");
+                  }
+                }}
+                className="px-2 py-1 rounded text-[11px] font-bold text-white bg-blue-500 hover:bg-blue-600 transition-colors cursor-pointer"
+              >
+                {t("update_now")}
+              </button>
             </div>
+          )}
+          {updateStatus === "downloading" && (
+            <p className="text-xs text-blue-500 animate-pulse">{t("downloading")}</p>
+          )}
+          {updateStatus === "installing" && (
+            <p className="text-xs text-blue-500 animate-pulse">{t("installing")}</p>
+          )}
+          {updateStatus === "failed" && (
+            <p className="text-xs text-red-500">{t("update_failed")}</p>
           )}
         </section>
 
