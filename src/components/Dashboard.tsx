@@ -16,6 +16,7 @@ interface DashboardProps {
   readonly onDelete: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
   readonly onToggleTag?: (tagId: string) => void;
+  readonly onSelectCategory?: (categoryId: string) => void;
   readonly onAdd: () => void;
 }
 
@@ -73,7 +74,7 @@ function useGroupedItems(items: readonly DashboardItem[], categoryList: readonly
   }, [items, categoryList, uncategorizedLabel]);
 }
 
-export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag, onAdd }: DashboardProps) {
+export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onToggleTag, onSelectCategory, onAdd }: DashboardProps) {
   const { t } = useI18n();
   const groups = useGroupedItems(items, categoryList, t("uncategorized"));
   const showHeaders = groups.length > 1 || (groups.length === 1 && groups[0].label !== "");
@@ -85,9 +86,19 @@ export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, on
           <div key={group.categoryId || "_uncategorized"}>
             {showHeaders && (
               <div className="flex items-center gap-2 px-4 py-2 mt-2 first:mt-0">
-                <span className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  {group.label}
-                </span>
+                {group.categoryId && onSelectCategory ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectCategory(group.categoryId)}
+                    className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                  >
+                    {group.label}
+                  </button>
+                ) : (
+                  <span className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {group.label}
+                  </span>
+                )}
                 <div className="flex-1 border-t border-gray-200 dark:border-white/10" />
               </div>
             )}
@@ -115,9 +126,19 @@ export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, on
         <div key={group.categoryId || "_uncategorized"}>
           {showHeaders && (
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                {group.label}
-              </span>
+              {group.categoryId && onSelectCategory ? (
+                <button
+                  type="button"
+                  onClick={() => onSelectCategory(group.categoryId)}
+                  className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                >
+                  {group.label}
+                </button>
+              ) : (
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  {group.label}
+                </span>
+              )}
               <div className="flex-1 border-t border-gray-200 dark:border-white/10" />
             </div>
           )}

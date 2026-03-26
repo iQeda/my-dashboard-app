@@ -392,6 +392,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                 onDelete={deleteItem}
                 onLaunch={launchAndRecord}
                 onToggleTag={toggleTag}
+                onSelectCategory={toggleCategory}
                 onAdd={handleAdd}
               />
             </div>
