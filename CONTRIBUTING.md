@@ -28,6 +28,14 @@ cargo tauri dev
 - Tailwind CSS classes directly (no CSS modules)
 - All UI text via `t()` i18n function
 
+## Release Process
+
+Releases are built locally with updater signing enabled. See the README "Release" section for the full workflow. Key points:
+
+- `TAURI_SIGNING_PRIVATE_KEY` env var is required for signed builds (key content, not path)
+- `latest.json` and `.sig` files must be included in GitHub Releases for auto-update
+- Update `homebrew-tap` Cask after publishing the release
+
 ## Reporting Bugs
 
 Use the [Bug Report](https://github.com/iQeda/my-dashboard-app/issues/new?template=bug_report.md) template.

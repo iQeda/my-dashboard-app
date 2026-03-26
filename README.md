@@ -60,26 +60,22 @@ cargo tauri build
 
 初回の `cargo tauri dev` は Rust クレートのコンパイルに数分かかります。2回目以降は高速です。
 
-### Release
+### Release (自動)
+
+タグを push するだけで GitHub Actions が全自動でリリースします:
 
 ```bash
-# 1. ビルド
-cargo tauri build
-
-# 2. tar.gz 作成
-cd src-tauri/target/release/bundle/macos
-tar -czf MyDashboard-<version>-aarch64.tar.gz MyDashboard.app
-shasum -a 256 MyDashboard-<version>-aarch64.tar.gz
-
-# 3. GitHub Release 作成
-gh release create v<version> \
-  MyDashboard-<version>-aarch64.tar.gz \
-  ../dmg/MyDashboard_<version>_aarch64.dmg
-
-# 4. homebrew-tap の Casks/mydashboard.rb を更新
-#    - version, sha256, url を新バージョンに変更
-#    - push to iQeda/homebrew-tap
+# 1. tauri.conf.json と SettingsModal.tsx のバージョンを bump
+# 2. PR → CI pass → マージ
+# 3. タグ push → 自動リリース
+git tag v0.3.0
+git push origin v0.3.0
 ```
+
+Actions が自動実行する内容:
+- 署名付き Tauri ビルド (`TAURI_SIGNING_PRIVATE_KEY` は GitHub Secrets)
+- GitHub Release 作成 (`.app.tar.gz` + `.sig` + `.dmg` + `latest.json`)
+- Homebrew Cask (`iQeda/homebrew-tap`) を自動更新
 
 ## Keyboard Shortcuts
 

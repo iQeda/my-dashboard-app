@@ -268,14 +268,17 @@ function mapKey(key: string): string {
    cargo tauri signer generate -w src-tauri/keys/myapp.key
    ```
 2. 秘密鍵は `src-tauri/keys/` に保存（`.gitignore` に `src-tauri/keys/` を追加済み）
-3. ビルド時に環境変数で秘密鍵パスを指定:
+3. ビルド時に環境変数で秘密鍵の**内容**を指定（パスではなく内容を渡す）:
    ```bash
-   TAURI_SIGNING_PRIVATE_KEY_PATH=src-tauri/keys/myapp.key cargo tauri build
+   TAURI_SIGNING_PRIVATE_KEY=$(cat src-tauri/keys/myapp.key) cargo tauri build
    ```
 4. `tauri.conf.json` に `"createUpdaterArtifacts": true` と `"pubkey"` を設定
-5. GitHub Release に `latest.json` を含めることで、エンドポイント経由で更新チェック
+5. ビルドすると `.sig` ファイルと `latest.json` が自動生成される
+6. GitHub Release に `latest.json` と `.sig` を含めることで、エンドポイント経由で更新チェック・署名検証
 
-**注意**: 秘密鍵はリポジトリに含めないこと。CI/CD でビルドする場合は GitHub Secrets 等で管理する。
+**注意**:
+- 環境変数名は `TAURI_SIGNING_PRIVATE_KEY`（`_PATH` ではない）。鍵ファイルの**内容**を直接渡す
+- 秘密鍵はリポジトリに含めないこと。CI/CD でビルドする場合は GitHub Secrets 等で管理する
 
 **該当ファイル**: `src-tauri/tauri.conf.json`, `.gitignore`
 
