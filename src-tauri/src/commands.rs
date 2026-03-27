@@ -71,6 +71,8 @@ pub struct AppConfig {
     pub multi_tag_mode: Option<bool>,
     #[serde(rename = "pinnedOrder", skip_serializing_if = "Option::is_none")]
     pub pinned_order: Option<Vec<String>>,
+    #[serde(rename = "hiddenProfiles", skip_serializing_if = "Option::is_none")]
+    pub hidden_profiles: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,16 +135,22 @@ fn default_config() -> AppConfig {
 #[tauri::command]
 pub fn load_config() -> Result<AppConfig, String> {
     let path = config_path();
-    if path.exists() {
+    let config = if path.exists() {
         let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        let config: AppConfig =
-            serde_json::from_str(&content).map_err(|e| e.to_string())?;
-        Ok(config)
+        serde_json::from_str(&content).map_err(|e| e.to_string())?
     } else {
         let config = default_config();
         let _ = save_config_to_path(&config, &path);
-        Ok(config)
+        config
+    };
+
+    // Ensure sample profile exists
+    let sample_path = config_dir().join("default-config.json");
+    if !sample_path.exists() {
+        let _ = save_config_to_path(&default_config(), &sample_path);
     }
+
+    Ok(config)
 }
 
 #[tauri::command]
@@ -287,14 +295,7 @@ pub fn list_config_profiles() -> Result<Vec<ConfigProfile>, String> {
             continue;
         }
         let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        let name = if filename == "config.json" {
-            "Default".to_string()
-        } else {
-            filename
-                .strip_prefix("config-").unwrap_or(&filename)
-                .strip_suffix(".json").unwrap_or(&filename)
-                .to_string()
-        };
+        let name = path.to_string_lossy().to_string();
         profiles.push(ConfigProfile {
             name,
             filename: filename.clone(),
@@ -319,6 +320,22 @@ pub fn switch_config(filename: String) -> Result<AppConfig, String> {
 
     // Copy to config.json to make it active
     let active = config_dir().join("config.json");
+    fs::write(&active, &content).map_err(|e| e.to_string())?;
+
+    Ok(config)
+}
+
+#[tauri::command]
+pub fn load_config_from_file(path: String) -> Result<AppConfig, String> {
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let config: AppConfig =
+        serde_json::from_str(&content).map_err(|e| e.to_string())?;
+
+    // Save as active config
+    let active = config_path();
+    if let Some(parent) = active.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
     fs::write(&active, &content).map_err(|e| e.to_string())?;
 
     Ok(config)

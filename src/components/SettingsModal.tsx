@@ -13,15 +13,17 @@ interface SettingsModalProps {
   readonly onChangeLocale: (locale: Locale) => void;
   readonly onChangeGlobalShortcut: (shortcut: string | undefined) => void;
   readonly onImport: () => void;
+  readonly onLoadConfigFile: () => void;
   readonly onExport: () => void;
   readonly onSwitchProfile: (filename: string) => void;
+  readonly hiddenProfiles: readonly string[];
+  readonly onUpdateHiddenProfiles: (hidden: readonly string[]) => void;
   readonly onClose: () => void;
 }
 
-export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChangeGlobalShortcut, onImport, onExport, onSwitchProfile, onClose }: SettingsModalProps) {
+export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChangeGlobalShortcut, onImport, onLoadConfigFile, onExport, onSwitchProfile, hiddenProfiles, onUpdateHiddenProfiles, onClose }: SettingsModalProps) {
   const { t } = useI18n();
   const [appVersion, setAppVersion] = useState("");
-  const [configPath, setConfigPath] = useState("");
   const [profiles, setProfiles] = useState<ConfigProfile[]>([]);
   const [recording, setRecording] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "downloading" | "installing" | "failed">("idle");
@@ -84,7 +86,6 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
 
   useEffect(() => {
     getVersion().then(setAppVersion).catch(console.error);
-    invoke<string>("get_config_path").then(setConfigPath).catch(console.error);
     invoke<ConfigProfile[]>("list_config_profiles").then(setProfiles).catch(console.error);
   }, []);
 
@@ -95,7 +96,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md mx-4 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-5"
+        className="w-full max-w-2xl mx-6 p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-5 max-h-[90vh] overflow-y-scroll overscroll-contain"
       >
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
           {t("settings")}
@@ -162,45 +163,43 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
           </div>
         </section>
 
-        <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-            {t("config")}
-          </h3>
-          <div className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1">{t("current_config_file")}</p>
-            <p className="text-xs text-gray-700 dark:text-gray-300 font-mono break-all select-all">
-              {configPath || t("loading")}
-            </p>
-          </div>
-        </section>
-
-        {profiles.length > 1 && (
+        {profiles.length > 0 && (
           <section className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               {t("profiles")}
             </h3>
             <div className="flex flex-col gap-1">
-              {profiles.map((p) => (
-                <button
+              {profiles.filter((p) => !hiddenProfiles.includes(p.filename)).map((p) => (
+                <div
                   key={p.filename}
-                  onClick={() => {
-                    if (!p.active) {
-                      onSwitchProfile(p.filename);
-                      onClose();
-                    }
-                  }}
-                  className={`flex items-center gap-2 text-left px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                     p.active
                       ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${p.active ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"}`} />
-                  <span className="flex-1 truncate">{p.name}</span>
-                  {p.active && (
-                    <span className="text-[10px] text-blue-500 dark:text-blue-400 font-medium">{t("active")}</span>
+                  <button
+                    onClick={() => { if (!p.active) onSwitchProfile(p.filename); }}
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${p.active ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"}`} />
+                    <span className="flex-1 text-xs font-mono break-all">{p.name}</span>
+                    {p.active && (
+                      <span className="text-[10px] text-blue-500 dark:text-blue-400 font-medium shrink-0">{t("active")}</span>
+                    )}
+                  </button>
+                  {!p.active && (
+                    <button
+                      onClick={() => onUpdateHiddenProfiles([...hiddenProfiles, p.filename])}
+                      className="p-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                      title={t("remove")}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   )}
-                </button>
+                </div>
               ))}
             </div>
           </section>
@@ -210,6 +209,18 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
           <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             {t("data")}
           </h3>
+          <button
+            onClick={() => {
+              onLoadConfigFile();
+              onClose();
+            }}
+            className="flex items-center gap-2 text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+            </svg>
+            {t("load_config_file")}
+          </button>
           <button
             onClick={() => {
               onImport();

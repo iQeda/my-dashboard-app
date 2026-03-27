@@ -80,6 +80,8 @@ const translations = {
   "profiles": { en: "Profiles", ja: "プロファイル" },
   "data": { en: "Data", ja: "データ" },
   "import_config": { en: "Import Config (as new profile)", ja: "設定をインポート（新規プロファイル）" },
+  "load_config_file": { en: "Load Config File", ja: "設定ファイルを読み込む" },
+  "remove": { en: "Remove", ja: "除外" },
   "export_config": { en: "Export Config", ja: "設定をエクスポート" },
   "about": { en: "About", ja: "バージョン情報" },
   "language": { en: "Language", ja: "言語" },

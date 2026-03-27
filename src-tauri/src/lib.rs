@@ -87,6 +87,7 @@ pub fn run() {
             commands::get_config_path,
             commands::list_config_profiles,
             commands::switch_config,
+            commands::load_config_from_file,
             register_shortcut,
             unregister_all_shortcuts,
         ])

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyDashboard — Your Apps & Sites. One Dashboard.</title>
+  <meta name="description" content="A native Mac launcher for your daily apps and websites. Organize with categories & workspaces, launch with keyboard shortcuts.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0F172A;
+      --bg-surface: #1E293B;
+      --bg-surface-hover: #334155;
+      --primary: #3B82F6;
+      --primary-light: #60A5FA;
+      --secondary: #8B5CF6;
+      --cyan: #22D3EE;
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --border: rgba(255,255,255,0.1);
+      --border-light: rgba(255,255,255,0.06);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', 'Noto Sans JP', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
+    .section { display: flex; flex-direction: column; align-items: center; padding: 100px 120px; width: 100%; }
+    .section-inner { max-width: 1200px; width: 100%; }
+    .hero { background: linear-gradient(180deg, #060A14 0%, #0F172A 100%); padding: 80px 120px 40px; gap: 36px; }
+    .badges-row { display: flex; gap: 12px; justify-content: center; }
+    .badge { padding: 6px 14px; border-radius: 100px; background: #22D3EE12; border: 1px solid #22D3EE30; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--cyan); letter-spacing: 1.5px; }
+    .headline { font-size: 64px; font-weight: 800; line-height: 1.1; text-align: center; max-width: 900px; }
+    .subline { font-size: 20px; line-height: 1.6; color: var(--text-secondary); text-align: center; max-width: 680px; }
+    .cta-row { display: flex; align-items: center; gap: 20px; justify-content: center; flex-wrap: wrap; }
+    .cta-btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; background: var(--primary); color: #fff; border-radius: 8px; font-size: 16px; font-weight: 600; text-decoration: none; transition: background 0.2s, transform 0.2s; }
+    .cta-btn:hover { background: #2563EB; }
+    .brew-block { display: flex; align-items: center; gap: 10px; padding: 12px 20px; background: #0A0F1C; border: 1px solid var(--border); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+    .brew-block .prompt { color: var(--cyan); font-weight: 600; }
+    .brew-block .cmd { color: var(--text-secondary); }
+    .hero-image-container { position: relative; width: 100%; max-width: 1000px; height: auto; margin-top: 20px; }
+    .hero-glow { position: absolute; width: 700px; height: 420px; left: 50%; top: 50%; transform: translate(-50%, -50%); background: radial-gradient(ellipse, #3B82F650 0%, #8B5CF640 40%, transparent 100%); filter: blur(60px); pointer-events: none; }
+    .hero-screenshot { position: relative; width: 90%; max-width: 900px; margin: 0 auto; display: block; border-radius: 12px; border: 1px solid #FFFFFF10; transform: rotate(-2deg); box-shadow: 0 20px 60px #3B82F625, 0 40px 120px #8B5CF615; }
+    .sec-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--cyan); letter-spacing: 2px; text-transform: uppercase; }
+    .sec-title { font-size: 44px; font-weight: 800; text-align: center; }
+    .sec-subtitle { font-size: 18px; color: var(--text-secondary); text-align: center; }
+    .section-header { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 48px; }
+    .features-bg { background: var(--bg); }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature-card { display: flex; flex-direction: column; gap: 14px; padding: 28px 24px; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 12px; }
+    .feature-title { font-size: 16px; font-weight: 600; }
+    .feature-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+    .screenshots-bg { background: linear-gradient(180deg, #0F172A 0%, #0A0F1C 100%); }
+    .screenshots-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .screenshot-card { display: flex; flex-direction: column; gap: 16px; }
+    .screenshot-head { display: flex; align-items: center; gap: 10px; }
+    .screenshot-head .num { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--cyan); }
+    .screenshot-head .label { font-size: 14px; font-weight: 600; }
+    .screenshot-img { width: 100%; height: 220px; object-fit: cover; border-radius: 10px; border: 1px solid #FFFFFF10; }
+    .screenshot-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .shortcuts-section { gap: 64px; }
+    .shortcut-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 100px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--primary); letter-spacing: 2px; }
+    .shortcuts-grid { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
+    .shortcuts-row { display: flex; gap: 20px; justify-content: center; }
+    .shortcut-card { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 28px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; width: 180px; }
+    .kbd-group { display: flex; align-items: center; gap: 4px; }
+    kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 4px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-primary); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+    .shortcut-title { font-size: 14px; font-weight: 600; text-align: center; }
+    .shortcut-desc { font-size: 12px; color: var(--text-secondary); text-align: center; }
+    .opensource-bg { background: var(--bg-surface); }
+    .os-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #8B5CF620; border: 1px solid #8B5CF640; border-radius: 100px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--secondary); letter-spacing: 2px; }
+    .tech-stack { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .tech-pill { padding: 10px 20px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; }
+    .github-btn { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; background: var(--text-primary); color: var(--bg); border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; transition: transform 0.2s, opacity 0.2s; }
+    .github-btn:hover { opacity: 0.9; }
+    .github-icon { width: 20px; height: 20px; }
+    .install-bg { background: var(--bg); }
+    .code-block { width: 560px; max-width: 100%; border-radius: 16px; background: var(--bg-surface); border: 1px solid var(--border); overflow: hidden; }
+    .code-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+    .code-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .copy-btn { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-surface-hover); border: none; border-radius: 6px; color: var(--text-secondary); font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.2s; font-family: 'Inter', sans-serif; }
+    .copy-btn:hover { background: #475569; }
+    .code-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 4px; }
+    .code-body code { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--primary-light); }
+    .install-badges { display: flex; gap: 12px; justify-content: center; }
+    .install-badge { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 100px; font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+    .dl-link { font-size: 14px; color: var(--text-muted); text-align: center; }
+    .dl-link a { color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px; }
+    .dl-link a:hover { color: var(--text-primary); }
+    footer { background: var(--bg-surface); }
+    .footer-divider { height: 1px; background: var(--border); }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; padding: 32px 120px; }
+    .footer-left, .footer-right { display: flex; align-items: center; gap: 24px; }
+    .footer-logo { font-size: 16px; font-weight: 700; }
+    .footer-sep { color: var(--text-muted); }
+    .footer-made { font-size: 13px; color: var(--text-muted); }
+    .footer-mit { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: var(--text-muted); }
+    .footer-gh { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.2s; }
+    .footer-gh:hover { color: var(--text-primary); }
+    .icon-sm { width: 14px; height: 14px; }
+    .icon-md { width: 16px; height: 16px; }
+    .icon-lg { width: 18px; height: 18px; }
+    .icon-24 { width: 24px; height: 24px; }
+    .lang-switch { position: fixed; top: 16px; right: 16px; z-index: 100; display: flex; gap: 4px; padding: 4px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; }
+    .lang-btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; background: transparent; color: var(--text-secondary); font-family: 'Inter', sans-serif; }
+    .lang-btn.active { background: var(--primary); color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- Language Switch -->
+  <div class="lang-switch">
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('ja')">JA</button>
+  </div>
+
+  <!-- Hero -->
+  <section class="section hero">
+    <div class="badges-row">
+      <span class="badge" data-i18n="badge_oss">Free & Open Source</span>
+      <span class="badge" data-i18n="badge_silicon">Apple Silicon Native</span>
+    </div>
+    <h1 class="headline" data-i18n="headline">Your Apps & Sites.<br>One Dashboard.</h1>
+    <p class="subline" data-i18n="subline">Organize your Mac apps and websites into categories & workspaces.<br>Launch anything instantly with keyboard shortcuts.</p>
+    <div class="cta-row">
+      <a href="https://github.com/iQeda/my-dashboard-app/releases/latest" class="cta-btn">
+        <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span data-i18n="cta_download">Download for Mac</span>
+      </a>
+      <div class="brew-block">
+        <span class="prompt">$</span>
+        <span class="cmd">brew install --cask mydashboard</span>
+      </div>
+    </div>
+    <div class="hero-image-container">
+      <div class="hero-glow"></div>
+      <img src="images/dashboard.png" alt="MyDashboard - Dashboard View" class="hero-screenshot">
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section features-bg">
+    <div class="section-header">
+      <span class="sec-label">FEATURES</span>
+      <h2 class="sec-title" data-i18n="features_title">Everything you need</h2>
+      <p class="sec-subtitle" data-i18n="features_sub">A minimal, keyboard-driven launcher for your daily tools.</p>
+    </div>
+    <div class="feature-grid section-inner">
+      <div class="feature-card">
+        <svg class="icon-24" fill="none" stroke="var(--cyan)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <div class="feature-title" data-i18n="f1_title">App & URL Launcher</div>
+        <div class="feature-desc" data-i18n="f1_desc">Launch Mac apps and browser sites with one click from a single dashboard.</div>
+      </div>
+      <div class="feature-card">
+        <svg class="icon-24" fill="none" stroke="var(--cyan)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        <div class="feature-title" data-i18n="f2_title">Workspaces</div>
+        <div class="feature-desc" data-i18n="f2_desc">Group related apps & sites into workspaces. Open all at once with a single action.</div>
+      </div>
+      <div class="feature-card">
+        <svg class="icon-24" fill="none" stroke="var(--cyan)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 3a3 3 0 00-3 3v12a3 3 0 003 3 3 3 0 003-3 3 3 0 00-3-3H6a3 3 0 00-3 3 3 3 0 003 3 3 3 0 003-3V6a3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3h12a3 3 0 003-3 3 3 0 00-3-3z"/></svg>
+        <div class="feature-title" data-i18n="f3_title">Keyboard First</div>
+        <div class="feature-desc" data-i18n="f3_desc">&#8984;K command palette, arrow keys, Enter to launch. No mouse required.</div>
+      </div>
+      <div class="feature-card">
+        <svg class="icon-24" fill="none" stroke="var(--cyan)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/></svg>
+        <div class="feature-title" data-i18n="f4_title">Categories</div>
+        <div class="feature-desc" data-i18n="f4_desc">Organize items by category with visual separators and drag-to-reorder.</div>
+      </div>
+      <div class="feature-card">
+        <svg class="icon-24" fill="none" stroke="var(--cyan)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+        <div class="feature-title" data-i18n="f5_title">iCloud Sync</div>
+        <div class="feature-desc" data-i18n="f5_desc">Config auto-saved to iCloud. Seamless sync across all your Macs.</div>
+      </div>
+      <div class="feature-card">
+        <svg class="icon-24" fill="none" stroke="var(--cyan)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        <div class="feature-title" data-i18n="f6_title">Dark Mode</div>
+        <div class="feature-desc" data-i18n="f6_desc">Automatically follows macOS appearance. Light and dark, always native.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots -->
+  <section class="section screenshots-bg">
+    <div class="section-header">
+      <span class="sec-label">HOW IT WORKS</span>
+      <h2 class="sec-title" data-i18n="how_title">How it works</h2>
+      <p class="sec-subtitle" data-i18n="how_sub">Three steps to a faster workflow.</p>
+    </div>
+    <div class="screenshots-row section-inner">
+      <div class="screenshot-card">
+        <div class="screenshot-head"><span class="num">01</span><span class="label" data-i18n="ss1_label">Dashboard</span></div>
+        <img src="images/dashboard.png" alt="Dashboard view" class="screenshot-img">
+        <p class="screenshot-desc" data-i18n="ss1_desc">See everything at a glance. Favorites, pinned workspaces, categories.</p>
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-head"><span class="num">02</span><span class="label" data-i18n="ss2_label">Browse</span></div>
+        <img src="images/all_items.png" alt="Items list view" class="screenshot-img">
+        <p class="screenshot-desc" data-i18n="ss2_desc">Browse all items grouped by category. Filter, sort, search.</p>
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-head"><span class="num">03</span><span class="label" data-i18n="ss3_label">Launch</span></div>
+        <img src="images/search.png" alt="Command palette" class="screenshot-img">
+        <p class="screenshot-desc" data-i18n="ss3_desc">Press &#8984;K to instantly search and launch any item.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Keyboard Shortcuts -->
+  <section class="section features-bg shortcuts-section">
+    <div class="section-header">
+      <span class="shortcut-badge" data-i18n="kb_badge">KEYBOARD FIRST</span>
+      <h2 class="sec-title" style="font-size:48px;font-weight:700;letter-spacing:-1.5px;" data-i18n="kb_title">Built for keyboard users</h2>
+      <p class="sec-subtitle" data-i18n="kb_sub">Navigate, search, and launch — all without touching the mouse.</p>
+    </div>
+    <div class="shortcuts-grid">
+      <div class="shortcuts-row">
+        <div class="shortcut-card">
+          <div class="kbd-group"><kbd>&#8984;</kbd><kbd>K</kbd></div>
+          <div class="shortcut-title" data-i18n="sk1_title">Command Palette</div>
+          <div class="shortcut-desc" data-i18n="sk1_desc">Instant search & launch</div>
+        </div>
+        <div class="shortcut-card">
+          <div class="kbd-group"><kbd>&#8984;</kbd><kbd>N</kbd></div>
+          <div class="shortcut-title" data-i18n="sk2_title">New Item</div>
+          <div class="shortcut-desc" data-i18n="sk2_desc">Add app or website</div>
+        </div>
+        <div class="shortcut-card">
+          <div class="kbd-group"><kbd>&#8984;</kbd><kbd>F</kbd></div>
+          <div class="shortcut-title" data-i18n="sk3_title">Search</div>
+          <div class="shortcut-desc" data-i18n="sk3_desc">Find items instantly</div>
+        </div>
+      </div>
+      <div class="shortcuts-row">
+        <div class="shortcut-card">
+          <div class="kbd-group"><kbd>&#8593;</kbd><kbd>&#8595;</kbd><kbd>&#9166;</kbd></div>
+          <div class="shortcut-title" data-i18n="sk4_title">Navigate & Launch</div>
+          <div class="shortcut-desc" data-i18n="sk4_desc">Arrow keys + Enter</div>
+        </div>
+        <div class="shortcut-card">
+          <div class="kbd-group"><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>A</kbd></div>
+          <div class="shortcut-title" data-i18n="sk5_title">Open All</div>
+          <div class="shortcut-desc" data-i18n="sk5_desc">Launch entire workspace</div>
+        </div>
+        <div class="shortcut-card">
+          <div class="kbd-group"><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>D</kbd></div>
+          <div class="shortcut-title" data-i18n="sk6_title">Dashboard</div>
+          <div class="shortcut-desc" data-i18n="sk6_desc">Go to home screen</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Open Source -->
+  <section class="section opensource-bg">
+    <div class="section-header">
+      <span class="os-badge">OPEN SOURCE</span>
+      <h2 class="sec-title" style="font-size:48px;font-weight:700;letter-spacing:-1.5px;" data-i18n="os_title">Open Source & Native</h2>
+      <p class="sec-subtitle" data-i18n="os_sub">Built with modern technologies. Free forever under MIT License.</p>
+    </div>
+    <div class="tech-stack">
+      <span class="tech-pill">Tauri v2</span>
+      <span class="tech-pill">Rust</span>
+      <span class="tech-pill">React</span>
+      <span class="tech-pill">TypeScript</span>
+      <span class="tech-pill">Tailwind CSS</span>
+    </div>
+    <div style="margin-top: 32px;">
+      <a href="https://github.com/iQeda/my-dashboard-app" class="github-btn" target="_blank" rel="noopener">
+        <svg class="github-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        <span data-i18n="github_btn">View on GitHub</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section class="section install-bg">
+    <div class="section-header" style="margin-bottom:32px;">
+      <h2 class="sec-title" style="font-size:48px;font-weight:700;letter-spacing:-1.5px;" data-i18n="install_title">Get Started in Seconds</h2>
+      <p class="sec-subtitle" data-i18n="install_sub">Install via Homebrew and launch your dashboard.</p>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Terminal</span>
+        <button class="copy-btn" onclick="navigator.clipboard.writeText('brew tap iQeda/tap\nbrew install --cask mydashboard')">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          <span data-i18n="copy">Copy</span>
+        </button>
+      </div>
+      <div class="code-body">
+        <code>brew tap iQeda/tap</code>
+        <code>brew install --cask mydashboard</code>
+      </div>
+    </div>
+    <div class="install-badges" style="margin-top:32px;">
+      <span class="install-badge">
+        <svg class="icon-sm" fill="none" stroke="var(--primary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+        Apple Silicon Native
+      </span>
+      <span class="install-badge">
+        <svg class="icon-sm" fill="none" stroke="var(--primary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span data-i18n="badge_autoupdate">Auto-update built-in</span>
+      </span>
+    </div>
+    <p class="dl-link" style="margin-top:24px;" data-i18n="dl_link">or <a href="https://github.com/iQeda/my-dashboard-app/releases/latest">download manually from GitHub Releases</a></p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-divider"></div>
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span class="footer-logo">MyDashboard</span>
+        <span class="footer-sep">&middot;</span>
+        <span class="footer-made">Made with Tauri + React</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-mit">MIT License</span>
+        <a href="https://github.com/iQeda/my-dashboard-app" class="footer-gh" target="_blank" rel="noopener">
+          <svg class="icon-md" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const i18n = {
+      en: {
+        badge_oss: "Free & Open Source",
+        badge_silicon: "Apple Silicon Native",
+        headline: "Your Apps & Sites.<br>One Dashboard.",
+        subline: "Organize your Mac apps and websites into categories & workspaces.<br>Launch anything instantly with keyboard shortcuts.",
+        cta_download: "Download for Mac",
+        features_title: "Everything you need",
+        features_sub: "A minimal, keyboard-driven launcher for your daily tools.",
+        f1_title: "App & URL Launcher",
+        f1_desc: "Launch Mac apps and browser sites with one click from a single dashboard.",
+        f2_title: "Workspaces",
+        f2_desc: "Group related apps & sites into workspaces. Open all at once with a single action.",
+        f3_title: "Keyboard First",
+        f3_desc: "\u2318K command palette, arrow keys, Enter to launch. No mouse required.",
+        f4_title: "Categories",
+        f4_desc: "Organize items by category with visual separators and drag-to-reorder.",
+        f5_title: "iCloud Sync",
+        f5_desc: "Config auto-saved to iCloud. Seamless sync across all your Macs.",
+        f6_title: "Dark Mode",
+        f6_desc: "A refined dark interface designed for focused work, day and night.",
+        how_title: "How it works",
+        how_sub: "Three steps to a faster workflow.",
+        ss1_label: "Dashboard",
+        ss1_desc: "See everything at a glance. Favorites, pinned workspaces, categories.",
+        ss2_label: "Browse",
+        ss2_desc: "Browse all items grouped by category. Filter, sort, search.",
+        ss3_label: "Launch",
+        ss3_desc: "Press \u2318K to instantly search and launch any item.",
+        kb_badge: "KEYBOARD FIRST",
+        kb_title: "Built for keyboard users",
+        kb_sub: "Navigate, search, and launch \u2014 all without touching the mouse.",
+        sk1_title: "Command Palette",
+        sk1_desc: "Instant search & launch",
+        sk2_title: "New Item",
+        sk2_desc: "Add app or website",
+        sk3_title: "Search",
+        sk3_desc: "Find items instantly",
+        sk4_title: "Navigate & Launch",
+        sk4_desc: "Arrow keys + Enter",
+        sk5_title: "Open All",
+        sk5_desc: "Launch entire workspace",
+        sk6_title: "Dashboard",
+        sk6_desc: "Go to home screen",
+        os_title: "Open Source & Native",
+        os_sub: "Built with modern technologies. Free forever under MIT License.",
+        github_btn: "View on GitHub",
+        install_title: "Get Started in Seconds",
+        install_sub: "Install via Homebrew and launch your dashboard.",
+        copy: "Copy",
+        badge_autoupdate: "Auto-update built-in",
+        dl_link: 'or <a href="https://github.com/iQeda/my-dashboard-app/releases/latest">download manually from GitHub Releases</a>',
+      },
+      ja: {
+        badge_oss: "Free & Open Source",
+        badge_silicon: "Apple Silicon Native",
+        headline: "日々のアプリとサイトを、<br>ひとつに集約。",
+        subline: "カテゴリとワークスペースで整理し、<br>キーボードショートカットで瞬時にアクセス。",
+        cta_download: "Mac 版をダウンロード",
+        features_title: "必要な機能を、過不足なく",
+        features_sub: "日常のツールに最適化された、ミニマルなキーボード駆動ランチャー。",
+        f1_title: "アプリ & URL ランチャー",
+        f1_desc: "Mac アプリとブラウザサイトを、ひとつのダッシュボードからワンクリックで起動。",
+        f2_title: "ワークスペース",
+        f2_desc: "関連するアプリやサイトをワークスペースに集約。まとめて一括起動も可能。",
+        f3_title: "キーボードファースト",
+        f3_desc: "\u2318K でコマンドパレットを呼び出し、矢印キーで選択、Enter で即起動。",
+        f4_title: "カテゴリ分類",
+        f4_desc: "カテゴリごとにアイテムをグループ化。ドラッグで自由に並べ替え。",
+        f5_title: "iCloud 同期",
+        f5_desc: "設定は iCloud に自動保存。複数の Mac 間でシームレスに同期。",
+        f6_title: "ダークモード",
+        f6_desc: "集中を妨げない、洗練されたダークインターフェース。",
+        how_title: "3ステップで、すぐに使える",
+        how_sub: "シンプルなワークフローで生産性を向上。",
+        ss1_label: "概観",
+        ss1_desc: "お気に入り、ピン留めワークスペース、カテゴリをひと目で把握。",
+        ss2_label: "一覧",
+        ss2_desc: "カテゴリ別にアイテムを閲覧。フィルター・ソート・検索も完備。",
+        ss3_label: "起動",
+        ss3_desc: "\u2318K で瞬時に検索し、目的のアイテムを起動。",
+        kb_badge: "KEYBOARD FIRST",
+        kb_title: "キーボードだけで、すべて完結",
+        kb_sub: "検索、ナビゲーション、起動まで。マウスに手を伸ばす必要はありません。",
+        sk1_title: "コマンドパレット",
+        sk1_desc: "即座に検索・起動",
+        sk2_title: "新規追加",
+        sk2_desc: "アプリや Web サイトを登録",
+        sk3_title: "検索",
+        sk3_desc: "アイテムを即座に検索",
+        sk4_title: "選択 & 起動",
+        sk4_desc: "矢印キー + Enter",
+        sk5_title: "一括起動",
+        sk5_desc: "ワークスペースをまとめて起動",
+        sk6_title: "ダッシュボード",
+        sk6_desc: "ホーム画面へ移動",
+        os_title: "オープンソース & ネイティブ",
+        os_sub: "最新の技術で構築。MIT ライセンスのもと、永続的に無料。",
+        github_btn: "GitHub で見る",
+        install_title: "すぐに始められる",
+        install_sub: "Homebrew でインストールして、すぐにダッシュボードを起動。",
+        copy: "コピー",
+        badge_autoupdate: "自動アップデート対応",
+        dl_link: 'または <a href="https://github.com/iQeda/my-dashboard-app/releases/latest">GitHub Releases から手動ダウンロード</a>',
+      },
+    };
+
+    function setLang(lang) {
+      document.documentElement.lang = lang;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
+      });
+      document.querySelectorAll(".lang-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.textContent === lang.toUpperCase());
+      });
+      document.title = lang === "ja"
+        ? "MyDashboard \u2014 \u3059\u3079\u3066\u306e\u30a2\u30d7\u30ea\u3068\u30b5\u30a4\u30c8\u3092\u3001\u3072\u3068\u3064\u306e\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9\u306b\u3002"
+        : "MyDashboard \u2014 Your Apps & Sites. One Dashboard.";
+    }
+
+    // Auto-detect browser language
+    if (navigator.language.startsWith("ja")) setLang("ja");
+  </script>
+
+</body>
+</html>
