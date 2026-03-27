@@ -19,6 +19,8 @@ pub struct DashboardItem {
     pub category: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(rename = "excludeFromOpenAll", skip_serializing_if = "Option::is_none")]
+    pub exclude_from_open_all: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,6 +69,8 @@ pub struct AppConfig {
     pub combined_filter: Option<bool>,
     #[serde(rename = "multiTagMode", skip_serializing_if = "Option::is_none")]
     pub multi_tag_mode: Option<bool>,
+    #[serde(rename = "pinnedOrder", skip_serializing_if = "Option::is_none")]
+    pub pinned_order: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

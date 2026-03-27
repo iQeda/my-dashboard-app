@@ -138,11 +138,23 @@ export function useConfig() {
     async (id: string, updates: Partial<Pick<TagDef, "label" | "color" | "pinned">>) => {
       const current = configRef.current;
       if (!current) return;
+      // Generate new ID from new label if label changed
+      const newId = updates.label
+        ? updates.label.toLowerCase().replace(/\s+/g, "-")
+        : id;
+      const idChanged = newId !== id && updates.label;
       const newConfig: AppConfig = {
         ...current,
         tagDefs: current.tagDefs.map((c) =>
-          c.id === id ? { ...c, ...updates } : c,
+          c.id === id ? { ...c, ...updates, ...(idChanged ? { id: newId } : {}) } : c,
         ),
+        ...(idChanged ? {
+          items: current.items.map((item) => ({
+            ...item,
+            tags: item.tags.map((t) => (t === id ? newId : t)),
+          })),
+          pinnedOrder: (current.pinnedOrder ?? []).map((pid) => (pid === id ? newId : pid)),
+        } : {}),
       };
       await saveConfig(newConfig);
     },
@@ -170,11 +182,23 @@ export function useConfig() {
     async (id: string, updates: Partial<Pick<Category, "label" | "pinned">>) => {
       const current = configRef.current;
       if (!current) return;
+      // Generate new ID from new label if label changed
+      const newId = updates.label
+        ? updates.label.toLowerCase().replace(/\s+/g, "-")
+        : id;
+      const idChanged = newId !== id && updates.label;
       const newConfig: AppConfig = {
         ...current,
         categoryList: (current.categoryList ?? []).map((c) =>
-          c.id === id ? { ...c, ...updates } : c,
+          c.id === id ? { ...c, ...updates, ...(idChanged ? { id: newId } : {}) } : c,
         ),
+        ...(idChanged ? {
+          items: current.items.map((item) => ({
+            ...item,
+            category: item.category === id ? newId : item.category,
+          })),
+          pinnedOrder: (current.pinnedOrder ?? []).map((pid) => (pid === id ? newId : pid)),
+        } : {}),
       };
       await saveConfig(newConfig);
     },
@@ -218,7 +242,7 @@ export function useConfig() {
   );
 
   const updateViewPrefs = useCallback(
-    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean }) => {
+    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean; pinnedOrder?: readonly string[] }) => {
       const current = configRef.current;
       if (!current) return;
       const newConfig: AppConfig = { ...current, ...prefs };

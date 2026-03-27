@@ -72,7 +72,7 @@ GitHub Secrets（リリースに必要）:
   - addItem, updateItem, deleteItem, duplicateItem, toggleFavorite
   - reorderTagDefs, updateTagDef, deleteTagDef
   - updateCategoryDef, deleteCategoryDef, reorderCategoryList
-  - updateViewPrefs (viewMode, cardSize, sidebarWidth, sidebarCategoriesOpen, sidebarTagsOpen, combinedFilter, multiTagMode 永続化)
+  - updateViewPrefs (viewMode, cardSize, sidebarWidth, sidebarCategoriesOpen, sidebarTagsOpen, combinedFilter, multiTagMode, pinnedOrder 永続化)
   - updateLocale (言語設定)
   - 絵文字履歴は addItem/updateItem 内で同時更新（SKILL.md #6 参照）
 - `useFilter` hook - フィルタリング
@@ -120,9 +120,9 @@ Switch: Rust switch_config → config.json を上書き → reload
 
 - `TagDef` (id, label, color, pinned?) - タグ定義。旧名 `Category`（リネーム済み）。`pinned` でピン留め
 - `Category` (id, label, pinned?) - カテゴリ定義。アイテムに1つだけ設定可能。`pinned` でピン留め
-- `DashboardItem` - id, name, type, target, tags[], icon?, favorite?, category?, description?
+- `DashboardItem` - id, name, type, target, tags[], icon?, favorite?, category?, description?, excludeFromOpenAll?
 - `RecentAccessEntry` - id, at (Unix timestamp ms via `Date.now()`)
-- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?, sidebarCategoriesOpen?, sidebarTagsOpen?, combinedFilter?, multiTagMode?
+- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?, sidebarCategoriesOpen?, sidebarTagsOpen?, combinedFilter?, multiTagMode?, pinnedOrder?
 
 ## Config File Location
 
@@ -162,6 +162,11 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **Dashboard のコンテキストメニュー簡略化**: ItemCard は Edit / Favorite のみ（Duplicate / Delete 非表示）。カテゴリ・タグカードは Pin/Unpin のみ
 - **Settings バージョン動的取得**: `getVersion()` で `tauri.conf.json` の version を自動反映（ハードコード廃止）
 - **Dashboard カードスタイル統一**: カテゴリ・タグカードは同一サイズ・同一ホバー（青ボーダー + scale アニメーション）。カテゴリフォルダアイコンは紫で統一
+- **リネーム時 ID 同期**: カテゴリ・タグのリネーム時に ID をラベルベースで自動更新。アイテム参照と pinnedOrder も連動更新
+- **カテゴリ・タグの重複バリデーション**: 新規追加・リネーム時にラベルの重複チェック。エラーメッセージを赤で表示
+- **Pinned 順序永続化**: `pinnedOrder: string[]` で config にピン留め順を保存。サイドバー・Dashboard ともに同じ順序で表示。ドラッグ＆ドロップ・右クリックソートで並べ替え可能
+- **excludeFromOpenAll フラグ**: アイテム編集画面でトグル。Open All（ボタン / ⌘⇧A）の対象から除外
+- **ItemFormModal UI**: `<select>` 廃止、全てボタン選択式（Type / Category）。`overflow-y-scroll overscroll-contain` でスクロール対応
 
 ## Keyboard Shortcuts
 

@@ -26,6 +26,8 @@ interface SidebarProps {
   readonly initialCategoriesOpen: boolean;
   readonly initialTagsOpen: boolean;
   readonly onToggleSection: (prefs: { sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean }) => void;
+  readonly pinnedOrder: readonly string[];
+  readonly onUpdatePinnedOrder: (order: readonly string[]) => void;
   readonly onOpenSettings: () => void;
 }
 
@@ -116,21 +118,32 @@ function SidebarContextMenu({
 }
 
 // --- Inline rename input ---
-function InlineRename({ value, onSave, onCancel }: { value: string; onSave: (v: string) => void; onCancel: () => void }) {
+function InlineRename({ value, onSave, onCancel, validate }: { value: string; onSave: (v: string) => void; onCancel: () => void; validate?: (v: string) => string | null }) {
   const [text, setText] = useState(value);
+  const [error, setError] = useState("");
+  const trySave = () => {
+    const t = text.trim();
+    if (!t || t === value) { onCancel(); return; }
+    const err = validate?.(t);
+    if (err) { setError(err); return; }
+    onSave(t);
+  };
   return (
-    <input
-      type="text"
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && !e.nativeEvent.isComposing) { const t = text.trim(); if (t) onSave(t); }
-        if (e.key === "Escape") onCancel();
-      }}
-      onBlur={() => { const t = text.trim(); if (t && t !== value) onSave(t); else onCancel(); }}
-      autoFocus
-      className="w-full px-2 py-1 rounded bg-white dark:bg-gray-700 border border-blue-300 dark:border-blue-500/40 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-    />
+    <div className="flex flex-col gap-0.5">
+      <input
+        type="text"
+        value={text}
+        onChange={(e) => { setText(e.target.value); setError(""); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.nativeEvent.isComposing) trySave();
+          if (e.key === "Escape") onCancel();
+        }}
+        onBlur={trySave}
+        autoFocus
+        className={`w-full px-2 py-1 rounded bg-white dark:bg-gray-700 border text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${error ? "border-red-400 dark:border-red-500" : "border-blue-300 dark:border-blue-500/40"}`}
+      />
+      {error && <span className="text-[10px] text-red-500 dark:text-red-400 px-1">{error}</span>}
+    </div>
   );
 }
 
@@ -205,6 +218,7 @@ export function Sidebar({
   onReorderTagDefs, onUpdateTagDef, onDeleteTagDef,
   onUpdateCategoryDef, onDeleteCategoryDef, onReorderCategoryList,
   initialCategoriesOpen, initialTagsOpen, onToggleSection,
+  pinnedOrder, onUpdatePinnedOrder,
   onOpenSettings,
 }: SidebarProps) {
   const { t } = useI18n();
@@ -245,7 +259,7 @@ export function Sidebar({
     });
   };
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState>(null);
-  const [sortMenu, setSortMenu] = useState<{ kind: "tag" | "category"; x: number; y: number } | null>(null);
+  const [sortMenu, setSortMenu] = useState<{ kind: "tag" | "category" | "pinned"; x: number; y: number } | null>(null);
   const [editPanel, setEditPanel] = useState<EditPanelState>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ kind: "tag" | "category"; id: string } | null>(null);
 
@@ -323,6 +337,71 @@ export function Sidebar({
     setSortMenu(null);
   }, [tagDefs, onReorderTagDefs]);
 
+  // Pinned items (mixed categories + tags, ordered by pinnedOrder)
+  type PinnedEntry = { readonly kind: "category"; readonly cat: Category } | { readonly kind: "tag"; readonly tag: TagDef };
+  const pinnedItems = useMemo<readonly PinnedEntry[]>(() => {
+    const catMap = new Map(categoryList.filter((c) => c.pinned).map((c) => [c.id, c]));
+    const tagMap = new Map(tagDefs.filter((t) => t.pinned).map((t) => [t.id, t]));
+    const result: PinnedEntry[] = [];
+    // Add items in pinnedOrder first
+    for (const id of pinnedOrder) {
+      const cat = catMap.get(id);
+      if (cat) { result.push({ kind: "category", cat }); catMap.delete(id); continue; }
+      const tag = tagMap.get(id);
+      if (tag) { result.push({ kind: "tag", tag }); tagMap.delete(id); continue; }
+    }
+    // Add any pinned items not in pinnedOrder (newly pinned)
+    for (const cat of catMap.values()) result.push({ kind: "category", cat });
+    for (const tag of tagMap.values()) result.push({ kind: "tag", tag });
+    return result;
+  }, [categoryList, tagDefs, pinnedOrder]);
+
+  // Pinned drag
+  const [pinDragIndex, setPinDragIndex] = useState<number | null>(null);
+  const [pinOverIndex, setPinOverIndex] = useState<number | null>(null);
+  const pinIsDragging = useRef(false);
+  const pinStartY = useRef(0);
+  const pinDidMove = useRef(false);
+  const pinRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handlePinPointerDown = useCallback((e: React.PointerEvent, i: number) => {
+    pinIsDragging.current = false; pinDidMove.current = false; pinStartY.current = e.clientY; setPinDragIndex(i);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+  const handlePinPointerMove = useCallback((e: React.PointerEvent) => {
+    if (pinDragIndex === null) return;
+    if (!pinIsDragging.current) { if (Math.abs(e.clientY - pinStartY.current) < 5) return; pinIsDragging.current = true; pinDidMove.current = true; }
+    let closest = pinDragIndex, closestDist = Infinity;
+    pinRefs.current.forEach((el, i) => { if (!el) return; const d = Math.abs(e.clientY - (el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2)); if (d < closestDist) { closestDist = d; closest = i; } });
+    setPinOverIndex(closest);
+  }, [pinDragIndex]);
+  const handlePinPointerUp = useCallback(() => {
+    if (pinDragIndex !== null && pinOverIndex !== null && pinDragIndex !== pinOverIndex && pinDidMove.current) {
+      const reordered = [...pinnedItems];
+      const [moved] = reordered.splice(pinDragIndex, 1);
+      reordered.splice(pinOverIndex, 0, moved);
+      onUpdatePinnedOrder(reordered.map((e) => e.kind === "category" ? e.cat.id : e.tag.id));
+    }
+    pinIsDragging.current = false; pinDidMove.current = false; setPinDragIndex(null); setPinOverIndex(null);
+  }, [pinDragIndex, pinOverIndex, pinnedItems, onUpdatePinnedOrder]);
+  const handlePinClick = useCallback((entry: PinnedEntry) => {
+    if (!pinDidMove.current) {
+      if (entry.kind === "category") onToggleCategory(entry.cat.id);
+      else onToggleTag(entry.tag.id);
+    }
+  }, [onToggleCategory, onToggleTag]);
+
+  const handleSortPinned = useCallback((order: "asc" | "desc") => {
+    const sorted = [...pinnedItems].sort((a, b) => {
+      const labelA = a.kind === "category" ? a.cat.label : a.tag.label;
+      const labelB = b.kind === "category" ? b.cat.label : b.tag.label;
+      const cmp = labelA.localeCompare(labelB, undefined, { sensitivity: "base" });
+      return order === "asc" ? cmp : -cmp;
+    });
+    onUpdatePinnedOrder(sorted.map((e) => e.kind === "category" ? e.cat.id : e.tag.id));
+    setSortMenu(null);
+  }, [pinnedItems, onUpdatePinnedOrder]);
+
   return (
     <aside className="flex-1 flex flex-col gap-2 p-4 bg-gray-50/80 dark:bg-white/5 overflow-y-auto">
       <button onClick={onGoToDashboard}
@@ -356,32 +435,44 @@ export function Sidebar({
       </button>
 
       {/* Pinned */}
-      {(categoryList.some((c) => c.pinned) || tagDefs.some((t) => t.pinned)) && (
+      {pinnedItems.length > 0 && (
         <>
           <div className="border-t border-gray-200 dark:border-white/10 my-1" />
-          <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1 -mx-1 py-0.5">{t("pinned")}</span>
-          {categoryList.filter((c) => c.pinned).map((cat) => (
-            <button key={cat.id} onClick={() => onToggleCategory(cat.id)}
-              onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ kind: "category", cat, x: e.clientX, y: e.clientY }); }}
-              className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                selectedCategory === cat.id ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-              }`}>
-              <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-              <span className="flex-1 truncate">{cat.label}</span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{catCounts.get(cat.id) ?? 0}</span>
-            </button>
-          ))}
-          {tagDefs.filter((t) => t.pinned).map((tag) => (
-            <button key={tag.id} onClick={() => onToggleTag(tag.id)}
-              onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ kind: "tag", tag, x: e.clientX, y: e.clientY }); }}
-              className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                selectedTags.has(tag.id) ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-              }`}>
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
-              <span className="flex-1 truncate">{tag.label}</span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{tagCounts.get(tag.id) ?? 0}</span>
-            </button>
-          ))}
+          <button
+            onClick={() => {}}
+            onContextMenu={(e) => { e.preventDefault(); setSortMenu({ kind: "pinned", x: e.clientX, y: e.clientY }); }}
+            className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-default hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
+            title="Right-click to sort"
+          >
+            {t("pinned")}
+          </button>
+          {pinnedItems.map((entry, i) => {
+            const id = entry.kind === "category" ? entry.cat.id : entry.tag.id;
+            const isSelected = entry.kind === "category" ? selectedCategory === entry.cat.id : selectedTags.has(entry.tag.id);
+            const selectedClass = entry.kind === "category"
+              ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium"
+              : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium";
+            const ringClass = entry.kind === "category" ? "ring-purple-400" : "ring-blue-400";
+            return (
+              <div key={id} ref={(el) => { pinRefs.current[i] = el; }}
+                onPointerDown={(e) => handlePinPointerDown(e, i)} onPointerMove={handlePinPointerMove} onPointerUp={handlePinPointerUp}
+                onClick={() => handlePinClick(entry)}
+                onContextMenu={(e) => { e.preventDefault(); if (entry.kind === "category") setCtxMenu({ kind: "category", cat: entry.cat, x: e.clientX, y: e.clientY }); else setCtxMenu({ kind: "tag", tag: entry.tag, x: e.clientX, y: e.clientY }); }}
+                className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors select-none cursor-grab active:cursor-grabbing ${
+                  isSelected ? selectedClass : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
+                } ${pinIsDragging.current && pinDragIndex === i ? "opacity-40" : ""} ${pinIsDragging.current && pinOverIndex === i && pinDragIndex !== i ? `ring-2 ${ringClass} ring-offset-1 dark:ring-offset-gray-900 rounded-md` : ""}`}>
+                {entry.kind === "category" ? (
+                  <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                ) : (
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.tag.color }} />
+                )}
+                <span className="flex-1 truncate">{entry.kind === "category" ? entry.cat.label : entry.tag.label}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                  {entry.kind === "category" ? (catCounts.get(entry.cat.id) ?? 0) : (tagCounts.get(entry.tag.id) ?? 0)}
+                </span>
+              </div>
+            );
+          })}
         </>
       )}
 
@@ -404,7 +495,7 @@ export function Sidebar({
           {categoriesOpen && categoryList.map((cat, i) => {
             if (cat.pinned) return null;
             if (editPanel?.kind === "rename-cat" && editPanel.cat.id === cat.id) {
-              return <InlineRename key={cat.id} value={cat.label} onSave={(v) => { onUpdateCategoryDef(cat.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
+              return <InlineRename key={cat.id} value={cat.label} onSave={(v) => { onUpdateCategoryDef(cat.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} validate={(v) => categoryList.some((c) => c.id !== cat.id && c.label.toLowerCase() === v.toLowerCase()) ? t("duplicate_category") : null} />;
             }
             if (deleteTarget?.kind === "category" && deleteTarget.id === cat.id) {
               return <InlineDeleteConfirm key={cat.id} onConfirm={() => { onDeleteCategoryDef(cat.id); setDeleteTarget(null); }} onCancel={() => setDeleteTarget(null)} />;
@@ -456,7 +547,7 @@ export function Sidebar({
       {tagsOpen && tagDefs.map((tag, i) => {
         if (tag.pinned) return null;
         if (editPanel?.kind === "rename-tag" && editPanel.tag.id === tag.id) {
-          return <InlineRename key={tag.id} value={tag.label} onSave={(v) => { onUpdateTagDef(tag.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} />;
+          return <InlineRename key={tag.id} value={tag.label} onSave={(v) => { onUpdateTagDef(tag.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} validate={(v) => tagDefs.some((t) => t.id !== tag.id && t.label.toLowerCase() === v.toLowerCase()) ? t("duplicate_workspace") : null} />;
         }
         if (editPanel?.kind === "color-tag" && editPanel.tag.id === tag.id) {
           return <InlineColorPicker key={tag.id} current={tag.color} onSelect={(c) => onUpdateTagDef(tag.id, { color: c })} onClose={() => setEditPanel(null)} />;
@@ -494,8 +585,12 @@ export function Sidebar({
           state={ctxMenu}
           isPinned={ctxMenu.kind === "tag" ? !!ctxMenu.tag.pinned : !!ctxMenu.cat.pinned}
           onTogglePin={() => {
-            if (ctxMenu.kind === "tag") onUpdateTagDef(ctxMenu.tag.id, { pinned: !ctxMenu.tag.pinned });
-            else onUpdateCategoryDef(ctxMenu.cat.id, { pinned: !ctxMenu.cat.pinned });
+            const id = ctxMenu.kind === "tag" ? ctxMenu.tag.id : ctxMenu.cat.id;
+            const wasPinned = ctxMenu.kind === "tag" ? !!ctxMenu.tag.pinned : !!ctxMenu.cat.pinned;
+            if (ctxMenu.kind === "tag") onUpdateTagDef(id, { pinned: !wasPinned });
+            else onUpdateCategoryDef(id, { pinned: !wasPinned });
+            if (wasPinned) onUpdatePinnedOrder(pinnedOrder.filter((pid) => pid !== id));
+            else onUpdatePinnedOrder([...pinnedOrder, id]);
           }}
           onRename={() => {
             if (ctxMenu.kind === "tag") setEditPanel({ kind: "rename-tag", tag: ctxMenu.tag });
@@ -515,8 +610,8 @@ export function Sidebar({
         <SortContextMenu
           x={sortMenu.x}
           y={sortMenu.y}
-          onSortAsc={() => sortMenu.kind === "category" ? handleSortCategories("asc") : handleSortTags("asc")}
-          onSortDesc={() => sortMenu.kind === "category" ? handleSortCategories("desc") : handleSortTags("desc")}
+          onSortAsc={() => sortMenu.kind === "category" ? handleSortCategories("asc") : sortMenu.kind === "tag" ? handleSortTags("asc") : handleSortPinned("asc")}
+          onSortDesc={() => sortMenu.kind === "category" ? handleSortCategories("desc") : sortMenu.kind === "tag" ? handleSortTags("desc") : handleSortPinned("desc")}
           onClose={() => setSortMenu(null)}
         />,
         document.body,

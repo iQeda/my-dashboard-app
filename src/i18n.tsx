@@ -28,8 +28,8 @@ const translations = {
   "all_items": { en: "All Items", ja: "すべてのアイテム" },
   "favorites": { en: "Favorites", ja: "お気に入り" },
   "categories": { en: "Categories", ja: "カテゴリ" },
-  "tags": { en: "Tags", ja: "タグ" },
-  "multi": { en: "Multi Tag (AND)", ja: "複数タグ (AND)" },
+  "tags": { en: "Workspaces", ja: "ワークスペース" },
+  "multi": { en: "Multi Workspace (AND)", ja: "複数ワークスペース (AND)" },
   "settings": { en: "Settings", ja: "設定" },
 
   // Item Form
@@ -47,15 +47,18 @@ const translations = {
   "url_placeholder": { en: "e.g. https://example.com", ja: "例: https://example.com" },
   "name_placeholder": { en: "e.g. GitHub Reviews", ja: "例: GitHub Reviews" },
   "optional_description": { en: "Optional description", ja: "説明（任意）" },
-  "new_tag_name": { en: "New tag name", ja: "新しいタグ名" },
+  "new_tag_name": { en: "New workspace name", ja: "新しいワークスペース名" },
   "new_category": { en: "New category", ja: "新しいカテゴリ" },
+  "duplicate_category": { en: "Category already exists", ja: "同名のカテゴリが既に存在します" },
+  "duplicate_workspace": { en: "Workspace already exists", ja: "同名のワークスペースが既に存在します" },
+  "exclude_from_open_all": { en: "Exclude from Open All", ja: "「すべて開く」から除外" },
   "select_app": { en: "Select an app", ja: "アプリを選択してください" },
   "enter_url": { en: "Enter a URL", ja: "URL を入力してください" },
   "url_invalid": { en: "URL must start with http:// or https://", ja: "http:// または https:// で始まる URL を入力してください" },
 
   // Search
   "search_placeholder": { en: "Search... (⌘K)", ja: "検索... (⌘K)" },
-  "search_items_tags": { en: "Search items and tags...", ja: "アイテムとタグを検索..." },
+  "search_items_tags": { en: "Search items and workspaces...", ja: "アイテムとワークスペースを検索..." },
 
   // Sort / Filter
   "sort_asc": { en: "A → Z", ja: "A → Z" },
@@ -64,7 +67,7 @@ const translations = {
   "sort_desc_name": { en: "Sort Z → A", ja: "降順ソート" },
   "type_all": { en: "All", ja: "すべて" },
   "clear_all": { en: "Clear All", ja: "すべて解除" },
-  "combined_filter": { en: "Category + Tag", ja: "カテゴリ + タグ" },
+  "combined_filter": { en: "Category + Workspace", ja: "カテゴリ + ワークスペース" },
   "open_all": { en: "Open All", ja: "すべて開く" },
 
   // Context Menu

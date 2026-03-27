@@ -275,7 +275,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
         }
         if (e.shiftKey && e.key === "A" && pageView === "items" && hasActiveFiltersRef.current) {
           e.preventDefault();
-          for (const item of filteredItems) {
+          for (const item of filteredItems.filter((i) => !i.excludeFromOpenAll)) {
             launchAndRecord(item);
           }
           return;
@@ -441,6 +441,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           initialCategoriesOpen={config.sidebarCategoriesOpen ?? true}
           initialTagsOpen={config.sidebarTagsOpen ?? true}
           onToggleSection={updateViewPrefs}
+          pinnedOrder={config.pinnedOrder ?? []}
+          onUpdatePinnedOrder={(order) => updateViewPrefs({ pinnedOrder: order })}
           onOpenSettings={() => setShowSettings(true)}
         />
         <div
@@ -470,18 +472,18 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             <>
               <button
                 onClick={async () => {
-                  for (const item of filteredItems) {
+                  for (const item of filteredItems.filter((i) => !i.excludeFromOpenAll)) {
                     await launchAndRecord(item);
                   }
                 }}
-                disabled={filteredItems.length === 0 || !hasActiveFilters}
+                disabled={filteredItems.filter((i) => !i.excludeFromOpenAll).length === 0 || !hasActiveFilters}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-amber-500 hover:bg-amber-600 border-amber-500 text-white disabled:opacity-30 disabled:cursor-default"
-                title={`${t("open_all")} ${filteredItems.length}`}
+                title={`${t("open_all")} ${filteredItems.filter((i) => !i.excludeFromOpenAll).length}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                {t("open_all")} ({filteredItems.length})
+                {t("open_all")} ({filteredItems.filter((i) => !i.excludeFromOpenAll).length})
               </button>
               <button
                 onClick={handleAdd}
@@ -508,8 +510,9 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             onLaunchItem={launchAndRecord}
             onEdit={handleEdit}
             onToggleFavorite={toggleFavorite}
-            onToggleCategoryPin={(id) => { const cat = (config.categoryList ?? []).find((c) => c.id === id); if (cat) updateCategoryDef(id, { pinned: !cat.pinned }); }}
-            onToggleTagPin={(id) => { const tag = config.tagDefs.find((t) => t.id === id); if (tag) updateTagDef(id, { pinned: !tag.pinned }); }}
+            onToggleCategoryPin={(id) => { const cat = (config.categoryList ?? []).find((c) => c.id === id); if (cat) { updateCategoryDef(id, { pinned: !cat.pinned }); updateViewPrefs({ pinnedOrder: cat.pinned ? (config.pinnedOrder ?? []).filter((pid) => pid !== id) : [...(config.pinnedOrder ?? []), id] }); } }}
+            onToggleTagPin={(id) => { const tag = config.tagDefs.find((t) => t.id === id); if (tag) { updateTagDef(id, { pinned: !tag.pinned }); updateViewPrefs({ pinnedOrder: tag.pinned ? (config.pinnedOrder ?? []).filter((pid) => pid !== id) : [...(config.pinnedOrder ?? []), id] }); } }}
+            pinnedOrder={config.pinnedOrder ?? []}
           />
         ) : (
           <>
