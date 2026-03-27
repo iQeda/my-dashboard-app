@@ -139,9 +139,12 @@ export function ItemFormModal({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [newCategoryInput, setNewCategoryInput] = useState("");
+  const [categoryError, setCategoryError] = useState("");
   const [localCategoryList, setLocalCategoryList] = useState<Category[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
+  const [tagError, setTagError] = useState("");
   const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
+  const [excludeFromOpenAll, setExcludeFromOpenAll] = useState(false);
   const [localTagDefs, setLocalTagDefs] = useState<TagDef[]>([]);
 
   useEffect(() => {
@@ -155,6 +158,7 @@ export function ItemFormModal({
       setDescription(item.description ?? "");
       setSelectedTags([...item.tags]);
       setSelectedCategory(item.category ?? "");
+      setExcludeFromOpenAll(item.excludeFromOpenAll ?? false);
     } else {
       setName("");
       setType("app");
@@ -163,6 +167,7 @@ export function ItemFormModal({
       setDescription("");
       setSelectedTags([...defaultTags]);
       setSelectedCategory(defaultCategory ?? "");
+      setExcludeFromOpenAll(false);
     }
   }, [item, tagDefs, categoryList, defaultTags, defaultCategory]);
 
@@ -193,23 +198,27 @@ export function ItemFormModal({
     const trimmedDesc = description.trim() || undefined;
     const cat = selectedCategory || undefined;
     onSave(
-      { id, name: name.trim(), type, target: target.trim(), tags: selectedTags, icon: trimmedIcon, description: trimmedDesc, category: cat, favorite: item?.favorite },
+      { id, name: name.trim(), type, target: target.trim(), tags: selectedTags, icon: trimmedIcon, description: trimmedDesc, category: cat, favorite: item?.favorite, excludeFromOpenAll: excludeFromOpenAll || undefined },
       localTagDefs,
       localCategoryList,
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, target, type, icon, description, selectedCategory, selectedTags, localTagDefs, localCategoryList, item, onSave]);
+  }, [name, target, type, icon, description, selectedCategory, selectedTags, localTagDefs, localCategoryList, excludeFromOpenAll, item, onSave]);
 
   const handleAddCategory = () => {
     const label = newCategoryInput.trim();
     if (!label) return;
-    const catId = label.toLowerCase().replace(/\s+/g, "-");
-    const exists = localCategoryList.some(
-      (c) => c.id === catId || c.label.toLowerCase() === label.toLowerCase(),
-    );
-    if (exists) {
-      setNewCategoryInput("");
+    if (localCategoryList.some((c) => c.label.toLowerCase() === label.toLowerCase())) {
+      setCategoryError(t("duplicate_category"));
       return;
+    }
+    setCategoryError("");
+    let catId = label.toLowerCase().replace(/\s+/g, "-");
+    const existingIds = new Set(localCategoryList.map((c) => c.id));
+    if (existingIds.has(catId)) {
+      let suffix = 2;
+      while (existingIds.has(`${catId}-${suffix}`)) suffix++;
+      catId = `${catId}-${suffix}`;
     }
     setLocalCategoryList((prev) => [...prev, { id: catId, label }]);
     setSelectedCategory(catId);
@@ -231,13 +240,18 @@ export function ItemFormModal({
     const label = newTagInput.trim();
     if (!label) return;
 
-    const id = label.toLowerCase().replace(/\s+/g, "-");
-    const exists = localTagDefs.some(
-      (c) => c.id === id || c.label.toLowerCase() === label.toLowerCase(),
-    );
-    if (exists) {
-      setNewTagInput("");
+    if (localTagDefs.some((c) => c.label.toLowerCase() === label.toLowerCase())) {
+      setTagError(t("duplicate_workspace"));
       return;
+    }
+    setTagError("");
+
+    let id = label.toLowerCase().replace(/\s+/g, "-");
+    const existingIds = new Set(localTagDefs.map((c) => c.id));
+    if (existingIds.has(id)) {
+      let suffix = 2;
+      while (existingIds.has(`${id}-${suffix}`)) suffix++;
+      id = `${id}-${suffix}`;
     }
 
     const newDef: TagDef = { id, label, color: newTagColor };
@@ -280,27 +294,31 @@ export function ItemFormModal({
       }}
     >
       <div
-        className="w-full max-w-md mx-4 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-4"
+        className="w-full max-w-2xl mx-6 p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-5 max-h-[90vh] overflow-y-scroll overscroll-contain"
       >
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
           {item ? t("edit_item") : t("add_item")}
         </h2>
 
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("type")}</span>
-          <select
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value as ItemType);
-              setTarget("");
-              setName("");
-            }}
-            className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          >
-            <option value="app">{t("app")}</option>
-            <option value="url">{t("url")}</option>
-          </select>
-        </label>
+          <div className="flex gap-2">
+            {(["app", "url"] as const).map((tp) => (
+              <button
+                key={tp}
+                type="button"
+                onClick={() => { if (tp !== type) { setType(tp); setTarget(""); setName(""); } }}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  type === tp
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+              >
+                {tp === "app" ? t("app") : t("url")}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {type === "app" ? (
           <div className="flex flex-col gap-1">
@@ -311,7 +329,7 @@ export function ItemFormModal({
             {errors.target && <span className="text-xs text-red-500 mt-0.5">{errors.target}</span>}
           </div>
         ) : (
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-2">
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("url")}</span>
             <input
               type="text"
@@ -327,7 +345,7 @@ export function ItemFormModal({
           </label>
         )}
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
             {t("display_name")}
           </span>
@@ -350,7 +368,7 @@ export function ItemFormModal({
           {errors.name && <span className="text-xs text-red-500">{errors.name}</span>}
         </div>
 
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-2">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("description")}</span>
           <textarea
             value={description}
@@ -361,45 +379,64 @@ export function ItemFormModal({
           />
         </label>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("category")}</span>
-          <div className="flex gap-2">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+        <label className="flex items-center gap-3 cursor-pointer">
+          <button
+            type="button"
+            onClick={() => setExcludeFromOpenAll((prev) => !prev)}
+            className={`relative w-9 h-5 rounded-full transition-colors ${excludeFromOpenAll ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${excludeFromOpenAll ? "translate-x-4" : ""}`} />
+          </button>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("exclude_from_open_all")}</span>
+        </label>
+
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("category")}</legend>
+          <div className="flex flex-wrap gap-2 mt-1">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("")}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                selectedCategory === "" ? "bg-gray-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
             >
-              <option value="">{t("none")}</option>
-              {[...localCategoryList].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" })).map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
+              {t("none")}
+            </button>
+            {[...localCategoryList].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" })).map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setSelectedCategory(c.id)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                  selectedCategory === c.id ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
           </div>
-          <div className="flex gap-2 mt-1">
+          <div className="flex gap-2">
             <input
               type="text"
               value={newCategoryInput}
-              onChange={(e) => setNewCategoryInput(e.target.value)}
+              onChange={(e) => { setNewCategoryInput(e.target.value); setCategoryError(""); }}
               placeholder={t("new_category")}
-              className="flex-1 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className={`flex-1 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${categoryError ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-600"}`}
             />
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleAddCategory();
-              }}
+              onClick={() => handleAddCategory()}
               disabled={!newCategoryInput.trim()}
               className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-30 disabled:cursor-default transition-colors cursor-pointer"
             >
               + {t("add")}
             </button>
           </div>
-        </div>
+          {categoryError && <p className="text-xs text-red-500 dark:text-red-400">{categoryError}</p>}
+        </fieldset>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("tags")}</legend>
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("tags")}</legend>
           <div className="flex flex-wrap gap-2 mt-1">
             {localTagDefs.map((cat) => (
               <button
@@ -426,11 +463,7 @@ export function ItemFormModal({
               <button
                 key={c}
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setNewTagColor(c);
-                }}
+                onClick={() => setNewTagColor(c)}
                 className={`w-5 h-5 rounded-full cursor-pointer transition-transform ${
                   newTagColor === c ? "scale-125 ring-2 ring-offset-1 ring-gray-400 dark:ring-offset-gray-800" : "hover:scale-110"
                 }`}
@@ -446,24 +479,21 @@ export function ItemFormModal({
             <input
               type="text"
               value={newTagInput}
-              onChange={(e) => setNewTagInput(e.target.value)}
+              onChange={(e) => { setNewTagInput(e.target.value); setTagError(""); }}
               onKeyDown={handleTagKeyDown}
               placeholder={t("new_tag_name")}
-              className="flex-1 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className={`flex-1 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${tagError ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-600"}`}
             />
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleAddTag();
-              }}
+              onClick={() => handleAddTag()}
               disabled={!newTagInput.trim()}
               className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-30 disabled:cursor-default transition-colors cursor-pointer"
             >
               + {t("add")}
             </button>
           </div>
+          {tagError && <p className="text-xs text-red-500 dark:text-red-400">{tagError}</p>}
         </fieldset>
 
         <div className="flex items-center gap-2 mt-2">

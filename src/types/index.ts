@@ -13,6 +13,7 @@ export interface DashboardItem {
   readonly favorite?: boolean;
   readonly category?: string;
   readonly description?: string;
+  readonly excludeFromOpenAll?: boolean;
 }
 
 export interface TagDef {
@@ -42,6 +43,7 @@ export interface AppConfig {
   readonly sidebarTagsOpen?: boolean;
   readonly combinedFilter?: boolean;
   readonly multiTagMode?: boolean;
+  readonly pinnedOrder?: readonly string[];
   readonly recentAccess?: readonly RecentAccessEntry[];
 }
 
