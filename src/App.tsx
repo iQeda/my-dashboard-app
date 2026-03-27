@@ -597,16 +597,6 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           onImport={handleImport}
           onLoadConfigFile={handleLoadConfigFile}
           onExport={handleExport}
-          onSwitchProfile={async (filename: string) => {
-            try {
-              await invoke("switch_config", { filename });
-              await reload();
-            } catch (e) {
-              console.error("Switch failed:", e);
-            }
-          }}
-          hiddenProfiles={config.hiddenProfiles ?? []}
-          onUpdateHiddenProfiles={(hidden) => updateViewPrefs({ hiddenProfiles: hidden })}
           onClose={() => setShowSettings(false)}
         />
       )}

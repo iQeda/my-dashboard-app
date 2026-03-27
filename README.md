@@ -2,6 +2,8 @@
 
 Mac 用のアプリ/サイト ランチャー。毎日使うアプリやブラウザサイトをワンクリックで起動できるダッシュボード。
 
+**Website**: https://iqeda.github.io/my-dashboard-app/
+
 ## Tech Stack
 
 - **Tauri v2** (Rust) - ネイティブ Mac アプリ

@@ -281,6 +281,19 @@ pub struct ConfigProfile {
     pub active: bool,
 }
 
+fn backup_config() {
+    let active = config_path();
+    if !active.exists() { return; }
+    let backup_dir = config_dir().join("backups");
+    let _ = fs::create_dir_all(&backup_dir);
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let backup = backup_dir.join(format!("config-{}.json", timestamp));
+    let _ = fs::copy(&active, &backup);
+}
+
 #[tauri::command]
 pub fn list_config_profiles() -> Result<Vec<ConfigProfile>, String> {
     let dir = config_dir();
@@ -291,10 +304,11 @@ pub fn list_config_profiles() -> Result<Vec<ConfigProfile>, String> {
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
-            continue;
-        }
+        if !path.is_file() { continue; }
+        if path.extension().and_then(|e| e.to_str()) != Some("json") { continue; }
         let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        // Exclude backup files and .bak files
+        if filename.starts_with("config-backup-") || filename.ends_with(".bak") { continue; }
         let name = path.to_string_lossy().to_string();
         profiles.push(ConfigProfile {
             name,
@@ -318,9 +332,11 @@ pub fn switch_config(filename: String) -> Result<AppConfig, String> {
     let config: AppConfig =
         serde_json::from_str(&content).map_err(|e| e.to_string())?;
 
+    backup_config();
+
     // Copy to config.json to make it active
-    let active = config_dir().join("config.json");
-    fs::write(&active, &content).map_err(|e| e.to_string())?;
+    let active_dest = config_dir().join("config.json");
+    fs::write(&active_dest, &content).map_err(|e| e.to_string())?;
 
     Ok(config)
 }
@@ -331,12 +347,14 @@ pub fn load_config_from_file(path: String) -> Result<AppConfig, String> {
     let config: AppConfig =
         serde_json::from_str(&content).map_err(|e| e.to_string())?;
 
+    backup_config();
+
     // Save as active config
-    let active = config_path();
-    if let Some(parent) = active.parent() {
+    let active_dest = config_path();
+    if let Some(parent) = active_dest.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    fs::write(&active, &content).map_err(|e| e.to_string())?;
+    fs::write(&active_dest, &content).map_err(|e| e.to_string())?;
 
     Ok(config)
 }
