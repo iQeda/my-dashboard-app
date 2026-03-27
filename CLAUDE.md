@@ -36,11 +36,12 @@ pnpm lint                # ESLint
 
 - `commands.rs` - 全 Tauri コマンド:
   - `launch_app(name)` / `open_url(url)` - アプリ起動・URL オープン
-  - `load_config()` / `save_config(config)` - iCloud > ローカル > デフォルトの優先順位で読み書き
+  - `load_config()` / `save_config(config)` - iCloud > ローカル > デフォルトの優先順位で読み書き。初回起動時に `default-config.json` をサンプルプロファイルとして自動生成
   - `get_config_path()` - 現在アクティブな config ファイルパスを返す
   - `export_config(path)` - 現在の設定をファイルに書き出し
   - `import_config(path, profile_name)` - 別名プロファイルとして保存
-  - `list_config_profiles()` / `switch_config(filename)` - プロファイル管理
+  - `load_config_from_file(path)` - 外部 JSON ファイルを直接アクティブ config として読み込み
+  - `list_config_profiles()` / `switch_config(filename)` - プロファイル管理（フルパス表示）
   - `list_installed_apps()` - Mac インストール済みアプリスキャン
 - `lib.rs` - Tauri Builder にコマンドとプラグイン (dialog, log, global-shortcut, updater, process) を登録。`register_shortcut` / `unregister_all_shortcuts` コマンド。WKWebView の `allowsBackForwardNavigationGestures` を `objc2` クレートで有効化
 
@@ -72,7 +73,7 @@ GitHub Secrets（リリースに必要）:
   - addItem, updateItem, deleteItem, duplicateItem, toggleFavorite
   - reorderTagDefs, updateTagDef, deleteTagDef
   - updateCategoryDef, deleteCategoryDef, reorderCategoryList
-  - updateViewPrefs (viewMode, cardSize, sidebarWidth, sidebarCategoriesOpen, sidebarTagsOpen, combinedFilter, multiTagMode, pinnedOrder 永続化)
+  - updateViewPrefs (viewMode, cardSize, sidebarWidth, sidebarCategoriesOpen, sidebarTagsOpen, combinedFilter, multiTagMode, pinnedOrder, hiddenProfiles 永続化)
   - updateLocale (言語設定)
   - 絵文字履歴は addItem/updateItem 内で同時更新（SKILL.md #6 参照）
 - `useFilter` hook - フィルタリング
@@ -103,7 +104,7 @@ GitHub Secrets（リリースに必要）:
 - `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移
 - `Sidebar.tsx` - カテゴリ・タグ・All Items・Favorites に件数表示。`items` prop から `useMemo` で集計。ピン留めセクション（Pinned）を Favorites の下に表示、ピン留め済みは Categories/Tags セクションから非表示
 - `ContextMenu.tsx` - アイテム右クリックメニュー。`onDuplicate`/`onDelete` はオプショナル（Dashboard では非表示）
-- `SettingsModal.tsx` - About のバージョン表示を `@tauri-apps/api/app` の `getVersion()` で動的取得
+- `SettingsModal.tsx` - About のバージョン表示を `@tauri-apps/api/app` の `getVersion()` で動的取得。Profiles（フルパス表示、除外機能付き）、Load Config File（Finder で任意 JSON を直接読み込み）
 - コンポーネントは全て props ベースの named export 関数コンポーネント
 
 ### Data Flow
@@ -122,13 +123,13 @@ Switch: Rust switch_config → config.json を上書き → reload
 - `Category` (id, label, pinned?) - カテゴリ定義。アイテムに1つだけ設定可能。`pinned` でピン留め
 - `DashboardItem` - id, name, type, target, tags[], icon?, favorite?, category?, description?, excludeFromOpenAll?
 - `RecentAccessEntry` - id, at (Unix timestamp ms via `Date.now()`)
-- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?, sidebarCategoriesOpen?, sidebarTagsOpen?, combinedFilter?, multiTagMode?, pinnedOrder?
+- `AppConfig` - items[], tagDefs[], categoryList?, emojiHistory?, viewMode?, cardSize?, sidebarWidth?, locale?, recentAccess?, globalShortcut?, sidebarCategoriesOpen?, sidebarTagsOpen?, combinedFilter?, multiTagMode?, pinnedOrder?, hiddenProfiles?
 
 ## Config File Location
 
 1. `~/Library/Mobile Documents/com~apple~CloudDocs/my-dashboard-app/config.json` (iCloud, 優先)
 2. `~/.config/my-dashboard-app/config.json` (ローカルフォールバック)
-3. `src-tauri/resources/default-config.json` (初回起動時にコピー)
+3. `src-tauri/resources/default-config.json` (初回起動時にコピー + `default-config.json` としてサンプルプロファイル自動生成)
 
 ## Key Design Decisions
 

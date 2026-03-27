@@ -44,6 +44,7 @@ export interface AppConfig {
   readonly combinedFilter?: boolean;
   readonly multiTagMode?: boolean;
   readonly pinnedOrder?: readonly string[];
+  readonly hiddenProfiles?: readonly string[];
   readonly recentAccess?: readonly RecentAccessEntry[];
 }
 

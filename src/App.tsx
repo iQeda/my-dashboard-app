@@ -404,6 +404,22 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     setPendingImportPath(null);
   }, [pendingImportPath, importProfileName]);
 
+  const handleLoadConfigFile = async () => {
+    const path = await open({
+      filters: [{ name: "JSON", extensions: ["json"] }],
+      multiple: false,
+      directory: false,
+    });
+    if (path) {
+      try {
+        await invoke("load_config_from_file", { path });
+        await reload();
+      } catch (e) {
+        console.error("Load config failed:", e);
+      }
+    }
+  };
+
   const handleExport = async () => {
     const path = await save({
       filters: [{ name: "JSON", extensions: ["json"] }],
@@ -579,6 +595,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             }
           }}
           onImport={handleImport}
+          onLoadConfigFile={handleLoadConfigFile}
           onExport={handleExport}
           onSwitchProfile={async (filename: string) => {
             try {
@@ -588,6 +605,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
               console.error("Switch failed:", e);
             }
           }}
+          hiddenProfiles={config.hiddenProfiles ?? []}
+          onUpdateHiddenProfiles={(hidden) => updateViewPrefs({ hiddenProfiles: hidden })}
           onClose={() => setShowSettings(false)}
         />
       )}
