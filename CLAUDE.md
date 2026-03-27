@@ -203,6 +203,34 @@ SKILL.md に詳細を記載。
 | `input onKeyDown` でショートカットキー録音が不完全 | `window.addEventListener("keydown"/"keyup", handler, true)` (capture phase) |
 | `e.key` が Tauri shortcut 形式と異なる | KEY_MAP でマッピング (例: `" "` → `"Space"`, `"ArrowUp"` → `"Up"`) |
 
+## Config Safety Rules (CRITICAL)
+
+### 過去のインシデント
+
+v0.9.0 開発中に以下のデータ損失事故が発生:
+
+1. **CLI スクリプトで config.json を直接上書き** — カテゴリ ID 修正のため Python スクリプトを実行し、config.json を直接書き換えた。バックアップは作成したが、以降のユーザー変更は保護されなかった
+2. **プロファイル切替機能のバグ** — `switch_config` が config.json をバックアップなしで上書きする設計だったため、サンプルデータで本番 config が消失。さらにバックアップファイルが config ディレクトリ直下に `.json` で保存され、プロファイル一覧に増殖した
+3. **復元したバックアップが古い** — バックアップが (1) の時点のものだったため、それ以降のユーザー変更がすべて失われた
+
+### 絶対に守るルール
+
+- **config.json を CLI やスクリプトで直接書き換えない。** 読み取り（確認）のみ許可
+- **config を上書きする機能を作る場合、必ず `backups/` サブディレクトリにタイムスタンプ付きバックアップを自動作成する**（現在 `switch_config` と `load_config_from_file` に実装済み）
+- **バックアップファイルは config ディレクトリ直下に置かない。** `backups/` サブディレクトリに隔離し、`list_config_profiles` から除外する
+- **プロファイル切替のような破壊的操作は、設計段階で「元に戻せるか」を検証してから実装する**
+
+### バックアップの定期作成
+
+現在の実装:
+- `switch_config` / `load_config_from_file` 実行時に `backups/config-{unix_timestamp}.json` として自動バックアップ
+- `save_config` （通常の設定保存）ではバックアップしない（頻度が高すぎるため）
+
+将来の改善案:
+- アプリ起動時に1日1回の自動バックアップ（`backups/daily-{YYYYMMDD}.json`）
+- バックアップの世代管理（最大N件で古いものを自動削除）
+- Settings からバックアップ一覧の閲覧・復元 UI
+
 ## Conventions
 
 - 型は全て `readonly` プロパティ

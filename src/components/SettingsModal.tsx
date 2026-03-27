@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import type { ConfigProfile } from "../types";
 import { useI18n } from "../i18n";
 import type { Locale } from "../i18n";
 
@@ -15,16 +14,13 @@ interface SettingsModalProps {
   readonly onImport: () => void;
   readonly onLoadConfigFile: () => void;
   readonly onExport: () => void;
-  readonly onSwitchProfile: (filename: string) => void;
-  readonly hiddenProfiles: readonly string[];
-  readonly onUpdateHiddenProfiles: (hidden: readonly string[]) => void;
   readonly onClose: () => void;
 }
 
-export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChangeGlobalShortcut, onImport, onLoadConfigFile, onExport, onSwitchProfile, hiddenProfiles, onUpdateHiddenProfiles, onClose }: SettingsModalProps) {
+export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChangeGlobalShortcut, onImport, onLoadConfigFile, onExport, onClose }: SettingsModalProps) {
   const { t } = useI18n();
   const [appVersion, setAppVersion] = useState("");
-  const [profiles, setProfiles] = useState<ConfigProfile[]>([]);
+  const [configPath, setConfigPath] = useState("");
   const [recording, setRecording] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "downloading" | "installing" | "failed">("idle");
   const [latestVersion, setLatestVersion] = useState("");
@@ -86,7 +82,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
 
   useEffect(() => {
     getVersion().then(setAppVersion).catch(console.error);
-    invoke<ConfigProfile[]>("list_config_profiles").then(setProfiles).catch(console.error);
+    invoke<string>("get_config_path").then(setConfigPath).catch(console.error);
   }, []);
 
   return (
@@ -163,47 +159,18 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
           </div>
         </section>
 
-        {profiles.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              {t("profiles")}
-            </h3>
-            <div className="flex flex-col gap-1">
-              {profiles.filter((p) => !hiddenProfiles.includes(p.filename)).map((p) => (
-                <div
-                  key={p.filename}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    p.active
-                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
-                  }`}
-                >
-                  <button
-                    onClick={() => { if (!p.active) onSwitchProfile(p.filename); }}
-                    className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
-                  >
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${p.active ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"}`} />
-                    <span className="flex-1 text-xs font-mono break-all">{p.name}</span>
-                    {p.active && (
-                      <span className="text-[10px] text-blue-500 dark:text-blue-400 font-medium shrink-0">{t("active")}</span>
-                    )}
-                  </button>
-                  {!p.active && (
-                    <button
-                      onClick={() => onUpdateHiddenProfiles([...hiddenProfiles, p.filename])}
-                      className="p-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                      title={t("remove")}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            {t("config")}
+          </h3>
+          <div className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1">{t("current_config_file")}</p>
+            <p className="text-xs text-gray-700 dark:text-gray-300 font-mono break-all select-all">
+              {configPath || t("loading")}
+            </p>
+          </div>
+        </section>
 
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
