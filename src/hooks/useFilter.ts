@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
-import type { DashboardItem, ItemType } from "../types";
+import type { DashboardItem, ItemType, Category, TagDef } from "../types";
 
 export type SortOrder = "asc" | "desc";
 export type TypeFilter = "all" | ItemType;
 
-export function useFilter(items: readonly DashboardItem[], initialPrefs?: { combinedFilter?: boolean; multiTagMode?: boolean }) {
+export function useFilter(items: readonly DashboardItem[], initialPrefs?: { combinedFilter?: boolean; multiTagMode?: boolean }, lookups?: { categoryList?: readonly Category[]; tagDefs?: readonly TagDef[] }) {
   const [selectedTags, setSelectedTags] = useState<ReadonlySet<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [multiTagMode, setMultiTagMode] = useState(initialPrefs?.multiTagMode ?? false);
@@ -24,9 +24,14 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
       const matchesCat =
         selectedCategory === null ||
         (selectedCategory === "" ? !item.category : item.category === selectedCategory);
+      const q = searchQuery.toLowerCase();
+      const catLabel = lookups?.categoryList?.find((c) => c.id === item.category)?.label ?? "";
+      const tagLabels = item.tags.map((t) => lookups?.tagDefs?.find((td) => td.id === t)?.label ?? "").join(" ");
       const matchesSearch =
         searchQuery === "" ||
-        item.name.toLowerCase().includes(searchQuery.toLowerCase());
+        item.name.toLowerCase().includes(q) ||
+        catLabel.toLowerCase().includes(q) ||
+        tagLabels.toLowerCase().includes(q);
       const matchesFav = !showFavoritesOnly || item.favorite;
       const matchesType = typeFilter === "all" || item.type === typeFilter;
       return matchesTag && matchesCat && matchesSearch && matchesFav && matchesType;
@@ -36,7 +41,7 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
       const cmp = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       return sortOrder === "asc" ? cmp : -cmp;
     });
-  }, [items, selectedTags, selectedCategory, searchQuery, sortOrder, showFavoritesOnly, typeFilter, multiTagMode]);
+  }, [items, selectedTags, selectedCategory, searchQuery, sortOrder, showFavoritesOnly, typeFilter, multiTagMode, lookups?.categoryList, lookups?.tagDefs]);
 
   const toggleTag = useCallback((tagId: string) => {
     setSelectedTags((prev) => {
