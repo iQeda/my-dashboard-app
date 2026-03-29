@@ -13,6 +13,7 @@ interface ItemFormModalProps {
   readonly emojiHistory: readonly string[];
   readonly defaultTags: readonly string[];
   readonly defaultCategory?: string;
+  readonly existingItemIds?: ReadonlySet<string>;
   readonly onSave: (item: DashboardItem, newTagDefs: readonly TagDef[], newCategoryList: readonly Category[]) => void;
   readonly onDelete?: (id: string) => void;
   readonly onClose: () => void;
@@ -124,6 +125,7 @@ export function ItemFormModal({
   emojiHistory,
   defaultTags,
   defaultCategory,
+  existingItemIds,
   onSave,
   onDelete,
   onClose,
@@ -193,7 +195,13 @@ export function ItemFormModal({
       return;
     }
 
-    const id = item?.id ?? name.toLowerCase().replace(/\s+/g, "-");
+    let id = item?.id ?? name.toLowerCase().replace(/\s+/g, "-");
+    if (!item && existingItemIds) {
+      while (existingItemIds.has(id)) {
+        const match = id.match(/-(\d+)$/);
+        id = match ? id.replace(/-\d+$/, `-${Number(match[1]) + 1}`) : `${id}-2`;
+      }
+    }
     const trimmedIcon = icon.trim() || undefined;
     const trimmedDesc = description.trim() || undefined;
     const cat = selectedCategory || undefined;
