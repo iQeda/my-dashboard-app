@@ -104,6 +104,32 @@
     .lang-switch { position: fixed; top: 16px; right: 16px; z-index: 100; display: flex; gap: 4px; padding: 4px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; }
     .lang-btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; background: transparent; color: var(--text-secondary); font-family: 'Inter', sans-serif; }
     .lang-btn.active { background: var(--primary); color: #fff; }
+
+    @media (max-width: 768px) {
+      .section { padding: 60px 20px; }
+      .hero { padding: 60px 20px 30px; gap: 24px; }
+      .headline { font-size: 32px; }
+      .subline { font-size: 16px; }
+      .sec-title { font-size: 28px; }
+      .sec-subtitle { font-size: 15px; }
+      .cta-row { flex-direction: column; gap: 12px; }
+      .brew-block { font-size: 11px; padding: 10px 14px; overflow-x: auto; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .screenshots-row { grid-template-columns: 1fr; }
+      .screenshot-img { height: auto; }
+      .shortcuts-row { flex-wrap: wrap; justify-content: center; }
+      .shortcut-card { width: calc(50% - 10px); }
+      .shortcuts-section { gap: 40px; }
+      .section-header { margin-bottom: 32px; }
+      [style*="font-size:48px"] { font-size: 28px !important; }
+      .code-block { width: 100%; }
+      .code-body code { font-size: 12px; }
+      .install-badges { flex-direction: column; align-items: center; }
+      .footer-inner { flex-direction: column; gap: 16px; padding: 24px 20px; }
+      .footer-left, .footer-right { gap: 12px; }
+      .hero-screenshot { transform: rotate(0deg); width: 100%; }
+      .hero-glow { width: 100%; height: 300px; }
+    }
   </style>
 </head>
 <body>
