@@ -70,7 +70,7 @@ GitHub Secrets（リリースに必要）:
 - `App.tsx` - `App`(I18nProvider) + `AppContent`(メインUI) の2層構造。`pageView` state (`"dashboard"` | `"items"`) でページ切替。`navigateTo()` は `setPageView` + `history.pushState` でブラウザ履歴対応。`launchAndRecord()` でアイテム起動 + アクセス記録を一元化
 - `i18n.tsx` - 翻訳システム。`I18nProvider` + `useI18n()` → `t(key)` で全 UI テキストを翻訳
 - `useConfig` hook - 設定の CRUD。`configRef` パターンで最新 state を参照
-  - addItem, updateItem, deleteItem, duplicateItem, toggleFavorite
+  - addItem, updateItem, deleteItem（同一 ID 複数時も1件のみ削除）, duplicateItem, toggleFavorite
   - reorderTagDefs, updateTagDef, deleteTagDef
   - updateCategoryDef, deleteCategoryDef, reorderCategoryList
   - updateViewPrefs (viewMode, cardSize, sidebarWidth, sidebarCategoriesOpen, sidebarTagsOpen, combinedFilter, multiTagMode, pinnedOrder, hiddenProfiles 永続化)
@@ -101,10 +101,10 @@ GitHub Secrets（リリースに必要）:
   - `createPortal` + `getBoundingClientRect` でポータル表示
 - `ShortcutHelper.tsx` - キーボードショートカット一覧。画面右下固定、ポップオーバーは上方向に展開
 - `SearchBar.tsx` - 検索入力のみ（コントロールボタンは ToolbarControls に分離）
-- `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移
+- `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移。アイテム行に編集ボタン表示（`onEdit` コールバック）
 - `Sidebar.tsx` - カテゴリ・タグ・All Items・Favorites に件数表示。`items` prop から `useMemo` で集計。ピン留めセクション（Pinned）を Favorites の下に表示、ピン留め済みは Categories/Tags セクションから非表示
 - `ContextMenu.tsx` - アイテム右クリックメニュー。`onDuplicate`/`onDelete` はオプショナル（Dashboard では非表示）
-- `SettingsModal.tsx` - About のバージョン表示を `@tauri-apps/api/app` の `getVersion()` で動的取得。Profiles（フルパス表示、除外機能付き）、Load Config File（Finder で任意 JSON を直接読み込み）
+- `SettingsModal.tsx` - About のバージョン表示を `@tauri-apps/api/app` の `getVersion()` で動的取得。Current Config File パス表示、Load Config File（Finder で任意 JSON を直接読み込み）
 - コンポーネントは全て props ベースの named export 関数コンポーネント
 
 ### Data Flow
@@ -167,7 +167,7 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **カテゴリ・タグの重複バリデーション**: 新規追加・リネーム時にラベルの重複チェック。エラーメッセージを赤で表示
 - **Pinned 順序永続化**: `pinnedOrder: string[]` で config にピン留め順を保存。サイドバー・Dashboard ともに同じ順序で表示。ドラッグ＆ドロップ・右クリックソートで並べ替え可能
 - **excludeFromOpenAll フラグ**: アイテム編集画面でトグル。Open All（ボタン / ⌘⇧A）の対象から除外
-- **ItemFormModal UI**: `<select>` 廃止、全てボタン選択式（Type / Category）。`overflow-y-scroll overscroll-contain` でスクロール対応
+- **ItemFormModal UI**: `<select>` 廃止、全てボタン選択式（Type / Category）。`overflow-y-scroll overscroll-contain` でスクロール対応。新規追加時にアイテム ID の重複チェック（サフィックス付与で回避）
 
 ## Keyboard Shortcuts
 
@@ -179,7 +179,7 @@ Switch: Rust switch_config → config.json を上書き → reload
 | `⌘,` | 設定 |
 | `⌘N` | 新規アイテム |
 | `⌘⇧A` | フィルター結果をすべて開く |
-| `⌘E` | 選択中アイテムを編集 |
+| `⌘E` | 選択中アイテムを編集（WKWebView がシステムレベルで消費する場合あり） |
 | `⌘⇧F` | お気に入りトグル |
 | `⌘Enter` | 選択中アイテムを起動 |
 | `Esc` | モーダル閉じ → フィルター解除 → 検索ブラー |

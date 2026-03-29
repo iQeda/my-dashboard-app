@@ -628,6 +628,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           tagDefs={config.tagDefs}
           onToggleTag={(id) => { toggleTag(id); navigateTo("items"); }}
           onLaunch={launchAndRecord}
+          onEdit={handleEdit}
           onClose={() => setShowCommandPalette(false)}
         />
       )}
@@ -640,6 +641,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           emojiHistory={config.emojiHistory ?? []}
           defaultTags={editingItem ? [] : [...selectedTags]}
           defaultCategory={editingItem ? undefined : (selectedCategory ?? undefined)}
+          existingItemIds={new Set(config.items.map((i) => i.id))}
           onSave={handleSave}
           onDelete={editingItem ? handleDelete : undefined}
           onClose={() => {

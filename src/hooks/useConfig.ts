@@ -100,9 +100,13 @@ export function useConfig() {
     async (id: string) => {
       const current = configRef.current;
       if (!current) return;
+      let removed = false;
       const newConfig: AppConfig = {
         ...current,
-        items: current.items.filter((i) => i.id !== id),
+        items: current.items.filter((i) => {
+          if (!removed && i.id === id) { removed = true; return false; }
+          return true;
+        }),
       };
       await saveConfig(newConfig);
     },
