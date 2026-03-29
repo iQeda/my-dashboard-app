@@ -106,7 +106,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     setSearchQuery,
     setSortOrder,
     setTypeFilter,
-  } = useFilter(config?.items ?? [], { combinedFilter: config?.combinedFilter, multiTagMode: config?.multiTagMode });
+  } = useFilter(config?.items ?? [], { combinedFilter: config?.combinedFilter, multiTagMode: config?.multiTagMode }, { categoryList: config?.categoryList ?? [], tagDefs: config?.tagDefs ?? [] });
 
   const [editingItem, setEditingItem] = useState<DashboardItem | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -626,7 +626,9 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
         <CommandPalette
           items={config.items}
           tagDefs={config.tagDefs}
+          categoryList={config.categoryList ?? []}
           onToggleTag={(id) => { toggleTag(id); navigateTo("items"); }}
+          onToggleCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
           onLaunch={launchAndRecord}
           onEdit={handleEdit}
           onClose={() => setShowCommandPalette(false)}

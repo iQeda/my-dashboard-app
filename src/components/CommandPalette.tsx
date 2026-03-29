@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { DashboardItem, TagDef } from "../types";
+import type { DashboardItem, TagDef, Category } from "../types";
 import { useI18n } from "../i18n";
 
 interface CommandPaletteProps {
   readonly items: readonly DashboardItem[];
   readonly tagDefs: readonly TagDef[];
+  readonly categoryList: readonly Category[];
   readonly onToggleTag: (tagId: string) => void;
+  readonly onToggleCategory: (catId: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
   readonly onEdit: (item: DashboardItem) => void;
   readonly onClose: () => void;
@@ -16,7 +18,7 @@ const DEFAULT_ICONS: Record<string, string> = {
   url: "\uD83C\uDF10",
 };
 
-export function CommandPalette({ items, tagDefs, onToggleTag, onLaunch, onEdit, onClose }: CommandPaletteProps) {
+export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onToggleCategory, onLaunch, onEdit, onClose }: CommandPaletteProps) {
   const { t } = useI18n();
   const [query, setQueryRaw] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -26,17 +28,21 @@ export function CommandPalette({ items, tagDefs, onToggleTag, onLaunch, onEdit, 
 
   type Result =
     | { kind: "item"; data: DashboardItem }
-    | { kind: "tag"; data: TagDef };
+    | { kind: "tag"; data: TagDef }
+    | { kind: "category"; data: Category };
 
   const results: Result[] = (() => {
     const q = query.toLowerCase();
-    const matchedItems: Result[] = items
-      .filter((i) => i.name.toLowerCase().includes(q))
-      .map((data) => ({ kind: "item", data }));
+    const matchedCategories: Result[] = categoryList
+      .filter((c) => c.label.toLowerCase().includes(q))
+      .map((data) => ({ kind: "category", data }));
     const matchedTags: Result[] = tagDefs
       .filter((c) => c.label.toLowerCase().includes(q))
       .map((data) => ({ kind: "tag", data }));
-    return [...matchedTags, ...matchedItems];
+    const matchedItems: Result[] = items
+      .filter((i) => i.name.toLowerCase().includes(q))
+      .map((data) => ({ kind: "item", data }));
+    return [...matchedCategories, ...matchedTags, ...matchedItems];
   })();
 
 
@@ -47,13 +53,15 @@ export function CommandPalette({ items, tagDefs, onToggleTag, onLaunch, onEdit, 
   const executeResult = useCallback(
     async (result: Result) => {
       if (result.kind === "item") {
-        onLaunch(result.data);
-      } else {
+        onLaunch(result.data as DashboardItem);
+      } else if (result.kind === "tag") {
         onToggleTag(result.data.id);
+      } else {
+        onToggleCategory(result.data.id);
       }
       onClose();
     },
-    [onToggleTag, onLaunch, onClose],
+    [onToggleTag, onToggleCategory, onLaunch, onClose],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -109,6 +117,23 @@ export function CommandPalette({ items, tagDefs, onToggleTag, onLaunch, onEdit, 
           )}
           {results.map((result, i) => {
             const isSelected = i === selectedIndex;
+            if (result.kind === "category") {
+              const cat = result.data;
+              return (
+                <button
+                  key={`cat-${cat.id}`}
+                  onClick={() => executeResult(result)}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                  className={`flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm transition-colors cursor-pointer ${
+                    isSelected ? "bg-blue-50 dark:bg-blue-900/30" : ""
+                  }`}
+                >
+                  <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                  <span className="flex-1 text-gray-800 dark:text-gray-200">{cat.label}</span>
+                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">{t("category")}</span>
+                </button>
+              );
+            }
             if (result.kind === "tag") {
               const cat = result.data;
               return (
