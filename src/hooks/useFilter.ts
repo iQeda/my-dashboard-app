@@ -41,7 +41,7 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
       const cmp = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       return sortOrder === "asc" ? cmp : -cmp;
     });
-  }, [items, selectedTags, selectedCategory, searchQuery, sortOrder, showFavoritesOnly, typeFilter, multiTagMode]);
+  }, [items, selectedTags, selectedCategory, searchQuery, sortOrder, showFavoritesOnly, typeFilter, multiTagMode, lookups?.categoryList, lookups?.tagDefs]);
 
   const toggleTag = useCallback((tagId: string) => {
     setSelectedTags((prev) => {
