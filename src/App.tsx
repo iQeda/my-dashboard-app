@@ -627,8 +627,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           items={config.items}
           tagDefs={config.tagDefs}
           categoryList={config.categoryList ?? []}
-          onToggleTag={(id) => { toggleTag(id); navigateTo("items"); }}
-          onToggleCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
+          onToggleTag={(id) => { if (!selectedTags.has(id)) toggleTag(id); navigateTo("items"); }}
+          onToggleCategory={(id) => { if (selectedCategory !== id) toggleCategory(id); navigateTo("items"); }}
           onLaunch={launchAndRecord}
           onEdit={handleEdit}
           onClose={() => setShowCommandPalette(false)}
