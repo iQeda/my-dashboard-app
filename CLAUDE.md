@@ -82,6 +82,7 @@ GitHub Secrets（リリースに必要）:
   - toggleCombinedFilter, toggleMultiTagMode
   - searchQuery, sortOrder, typeFilter (all/app/url)
   - setSortOrder, setTypeFilter（直接 setter、ドロップダウンメニュー用）
+  - 検索はアイテム名に加え、カテゴリ名・ワークスペース名でもマッチ（lookups 引数で参照）
 - `useKeyboardNavigation` hook - キーボードによるアイテムフォーカス管理
   - focusedIndex, setFocusedIndex, focusedItem, moveFocus, resetFocus
   - `displayItems`（カテゴリグループ順）を入力として使用し、表示順と一致
@@ -101,7 +102,7 @@ GitHub Secrets（リリースに必要）:
   - `createPortal` + `getBoundingClientRect` でポータル表示
 - `ShortcutHelper.tsx` - キーボードショートカット一覧。画面右下固定、ポップオーバーは上方向に展開
 - `SearchBar.tsx` - 検索入力のみ（コントロールボタンは ToolbarControls に分離）
-- `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移。アイテム行に編集ボタン表示（`onEdit` コールバック）
+- `CommandPalette.tsx` - 統合検索パレット。`onLaunch` コールバック経由で起動（`launchAndRecord` 一元化）。タグ選択時は items ページに遷移。アイテム行に編集ボタン表示（`onEdit` コールバック）。カテゴリ・ワークスペース・アイテムの3種を検索。既に選択中のワークスペース・カテゴリは再選択しても解除しない
 - `Sidebar.tsx` - カテゴリ・タグ・All Items・Favorites に件数表示。`items` prop から `useMemo` で集計。ピン留めセクション（Pinned）を Favorites の下に表示、ピン留め済みは Categories/Tags セクションから非表示
 - `ContextMenu.tsx` - アイテム右クリックメニュー。`onDuplicate`/`onDelete` はオプショナル（Dashboard では非表示）
 - `SettingsModal.tsx` - About のバージョン表示を `@tauri-apps/api/app` の `getVersion()` で動的取得。Current Config File パス表示、Load Config File（Finder で任意 JSON を直接読み込み）
