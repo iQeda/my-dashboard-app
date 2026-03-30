@@ -96,11 +96,11 @@ jobs:
 
             app "MyDashboard.app"
 
-            caveats <<~EOS
-              This app is not signed with an Apple Developer ID.
-              macOS Gatekeeper may block it on first launch.
-              If needed, run: xattr -cr /Applications/MyDashboard.app
-            EOS
+            postflight do
+              system_command "/usr/bin/xattr",
+                             args: ["-cr", "#{appdir}/MyDashboard.app"],
+                             sudo: false
+            end
 
             zap trash: [
               "~/Library/Mobile Documents/com~apple~CloudDocs/my-dashboard-app",
