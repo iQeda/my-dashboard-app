@@ -13,6 +13,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { ActiveFilters } from "./components/ActiveFilters";
 import { ShortcutHelper } from "./components/ShortcutHelper";
+import { UpdateNotification } from "./components/UpdateNotification";
 import { ToolbarControls } from "./components/ToolbarControls";
 import { I18nProvider, useI18n } from "./i18n";
 import type { Locale } from "./i18n";
@@ -576,6 +577,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       <div className="fixed bottom-4 right-4 z-40">
         <ShortcutHelper />
       </div>
+      <UpdateNotification
+        dismissedVersion={config.dismissedUpdateVersion}
+        onDismiss={(v) => updateViewPrefs({ dismissedUpdateVersion: v })}
+      />
 
       {showSettings && (
         <SettingsModal

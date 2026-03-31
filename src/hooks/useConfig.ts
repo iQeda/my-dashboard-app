@@ -246,7 +246,7 @@ export function useConfig() {
   );
 
   const updateViewPrefs = useCallback(
-    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean; pinnedOrder?: readonly string[]; hiddenProfiles?: readonly string[] }) => {
+    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean; pinnedOrder?: readonly string[]; hiddenProfiles?: readonly string[]; dismissedUpdateVersion?: string }) => {
       const current = configRef.current;
       if (!current) return;
       const newConfig: AppConfig = { ...current, ...prefs };

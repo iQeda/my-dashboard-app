@@ -73,6 +73,7 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
     } else if (e.key === "Enter" && results[selectedIndex]) {
       e.preventDefault();
+      e.nativeEvent.stopImmediatePropagation();
       executeResult(results[selectedIndex]);
     } else if (e.key === "Escape") {
       onClose();
