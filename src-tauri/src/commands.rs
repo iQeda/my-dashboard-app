@@ -73,6 +73,8 @@ pub struct AppConfig {
     pub pinned_order: Option<Vec<String>>,
     #[serde(rename = "hiddenProfiles", skip_serializing_if = "Option::is_none")]
     pub hidden_profiles: Option<Vec<String>>,
+    #[serde(rename = "dismissedUpdateVersion", skip_serializing_if = "Option::is_none")]
+    pub dismissed_update_version: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

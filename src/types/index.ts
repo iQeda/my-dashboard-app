@@ -45,6 +45,7 @@ export interface AppConfig {
   readonly multiTagMode?: boolean;
   readonly pinnedOrder?: readonly string[];
   readonly hiddenProfiles?: readonly string[];
+  readonly dismissedUpdateVersion?: string;
   readonly recentAccess?: readonly RecentAccessEntry[];
 }
 
