@@ -448,6 +448,21 @@ export function Sidebar({
           </button>
           {pinnedItems.map((entry, i) => {
             const id = entry.kind === "category" ? entry.cat.id : entry.tag.id;
+            if (entry.kind === "category" && editPanel?.kind === "rename-cat" && editPanel.cat.id === entry.cat.id) {
+              return <InlineRename key={id} value={entry.cat.label} onSave={(v) => { onUpdateCategoryDef(entry.cat.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} validate={(v) => categoryList.some((c) => c.id !== entry.cat.id && c.label.toLowerCase() === v.toLowerCase()) ? t("duplicate_category") : null} />;
+            }
+            if (entry.kind === "tag" && editPanel?.kind === "rename-tag" && editPanel.tag.id === entry.tag.id) {
+              return <InlineRename key={id} value={entry.tag.label} onSave={(v) => { onUpdateTagDef(entry.tag.id, { label: v }); setEditPanel(null); }} onCancel={() => setEditPanel(null)} validate={(v) => tagDefs.some((t) => t.id !== entry.tag.id && t.label.toLowerCase() === v.toLowerCase()) ? t("duplicate_workspace") : null} />;
+            }
+            if (entry.kind === "tag" && editPanel?.kind === "color-tag" && editPanel.tag.id === entry.tag.id) {
+              return <InlineColorPicker key={id} current={entry.tag.color} onSelect={(c) => onUpdateTagDef(entry.tag.id, { color: c })} onClose={() => setEditPanel(null)} />;
+            }
+            if (entry.kind === "category" && deleteTarget?.kind === "category" && deleteTarget.id === entry.cat.id) {
+              return <InlineDeleteConfirm key={id} onConfirm={() => { onDeleteCategoryDef(entry.cat.id); setDeleteTarget(null); }} onCancel={() => setDeleteTarget(null)} />;
+            }
+            if (entry.kind === "tag" && deleteTarget?.kind === "tag" && deleteTarget.id === entry.tag.id) {
+              return <InlineDeleteConfirm key={id} onConfirm={() => { onDeleteTagDef(entry.tag.id); setDeleteTarget(null); }} onCancel={() => setDeleteTarget(null)} />;
+            }
             const isSelected = entry.kind === "category" ? selectedCategory === entry.cat.id : selectedTags.has(entry.tag.id);
             const selectedClass = entry.kind === "category"
               ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium"
