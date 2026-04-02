@@ -306,11 +306,6 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
 
       // Layer 2: Escape (no modal open)
       if (e.key === "Escape") {
-        if (hasActiveFiltersRef.current) {
-          clearFilters();
-          resetFocus();
-          return;
-        }
         searchInputRef.current?.blur();
         return;
       }
@@ -342,7 +337,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showModal, showCommandPalette, showSettings, showImportNameModal, pageView, navigateTo, launchAndRecord, toggleFavorite, clearFilters, moveFocus, resetFocus]);
+  }, [showModal, showCommandPalette, showSettings, showImportNameModal, pageView, navigateTo, launchAndRecord, toggleFavorite, moveFocus]);
 
   // Scroll focused item into view
   useEffect(() => {
