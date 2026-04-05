@@ -522,8 +522,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             onLaunchItem={launchAndRecord}
             onEdit={handleEdit}
             onToggleFavorite={toggleFavorite}
-            onToggleCategoryPin={(id) => { const cat = (config.categoryList ?? []).find((c) => c.id === id); if (cat) { updateCategoryDef(id, { pinned: !cat.pinned }); updateViewPrefs({ pinnedOrder: cat.pinned ? (config.pinnedOrder ?? []).filter((pid) => pid !== id) : [...(config.pinnedOrder ?? []), id] }); } }}
-            onToggleTagPin={(id) => { const tag = config.tagDefs.find((t) => t.id === id); if (tag) { updateTagDef(id, { pinned: !tag.pinned }); updateViewPrefs({ pinnedOrder: tag.pinned ? (config.pinnedOrder ?? []).filter((pid) => pid !== id) : [...(config.pinnedOrder ?? []), id] }); } }}
+            onToggleCategoryPin={(id) => { const cat = (config.categoryList ?? []).find((c) => c.id === id); if (cat) updateCategoryDef(id, { pinned: !cat.pinned }); }}
+            onToggleTagPin={(id) => { const tag = config.tagDefs.find((t) => t.id === id); if (tag) updateTagDef(id, { pinned: !tag.pinned }); }}
             pinnedOrder={config.pinnedOrder ?? []}
           />
         ) : (

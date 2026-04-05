@@ -147,17 +147,31 @@ export function useConfig() {
         ? updates.label.toLowerCase().replace(/\s+/g, "-")
         : id;
       const idChanged = newId !== id && updates.label;
+      const effectiveId = idChanged ? newId : id;
+      // Update pinnedOrder atomically when pinned changes
+      let pinnedOrder = (current.pinnedOrder ?? []);
+      if (idChanged) {
+        pinnedOrder = pinnedOrder.map((pid) => (pid === id ? newId : pid));
+      }
+      if (updates.pinned !== undefined) {
+        const oldTag = current.tagDefs.find((t) => t.id === id);
+        if (oldTag && !oldTag.pinned && updates.pinned) {
+          pinnedOrder = [...pinnedOrder, effectiveId];
+        } else if (oldTag && oldTag.pinned && !updates.pinned) {
+          pinnedOrder = pinnedOrder.filter((pid) => pid !== effectiveId);
+        }
+      }
       const newConfig: AppConfig = {
         ...current,
         tagDefs: current.tagDefs.map((c) =>
           c.id === id ? { ...c, ...updates, ...(idChanged ? { id: newId } : {}) } : c,
         ),
+        pinnedOrder,
         ...(idChanged ? {
           items: current.items.map((item) => ({
             ...item,
             tags: item.tags.map((t) => (t === id ? newId : t)),
           })),
-          pinnedOrder: (current.pinnedOrder ?? []).map((pid) => (pid === id ? newId : pid)),
         } : {}),
       };
       await saveConfig(newConfig);
@@ -191,17 +205,31 @@ export function useConfig() {
         ? updates.label.toLowerCase().replace(/\s+/g, "-")
         : id;
       const idChanged = newId !== id && updates.label;
+      const effectiveId = idChanged ? newId : id;
+      // Update pinnedOrder atomically when pinned changes
+      let pinnedOrder = (current.pinnedOrder ?? []);
+      if (idChanged) {
+        pinnedOrder = pinnedOrder.map((pid) => (pid === id ? newId : pid));
+      }
+      if (updates.pinned !== undefined) {
+        const oldCat = (current.categoryList ?? []).find((c) => c.id === id);
+        if (oldCat && !oldCat.pinned && updates.pinned) {
+          pinnedOrder = [...pinnedOrder, effectiveId];
+        } else if (oldCat && oldCat.pinned && !updates.pinned) {
+          pinnedOrder = pinnedOrder.filter((pid) => pid !== effectiveId);
+        }
+      }
       const newConfig: AppConfig = {
         ...current,
         categoryList: (current.categoryList ?? []).map((c) =>
           c.id === id ? { ...c, ...updates, ...(idChanged ? { id: newId } : {}) } : c,
         ),
+        pinnedOrder,
         ...(idChanged ? {
           items: current.items.map((item) => ({
             ...item,
             category: item.category === id ? newId : item.category,
           })),
-          pinnedOrder: (current.pinnedOrder ?? []).map((pid) => (pid === id ? newId : pid)),
         } : {}),
       };
       await saveConfig(newConfig);
