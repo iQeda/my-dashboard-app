@@ -604,8 +604,6 @@ export function Sidebar({
             const wasPinned = ctxMenu.kind === "tag" ? !!ctxMenu.tag.pinned : !!ctxMenu.cat.pinned;
             if (ctxMenu.kind === "tag") onUpdateTagDef(id, { pinned: !wasPinned });
             else onUpdateCategoryDef(id, { pinned: !wasPinned });
-            if (wasPinned) onUpdatePinnedOrder(pinnedOrder.filter((pid) => pid !== id));
-            else onUpdatePinnedOrder([...pinnedOrder, id]);
           }}
           onRename={() => {
             if (ctxMenu.kind === "tag") setEditPanel({ kind: "rename-tag", tag: ctxMenu.tag });
