@@ -12,6 +12,7 @@
     "dialog:allow-save",
     "global-shortcut:default",
     "updater:default",
-    "process:default"
+    "process:default",
+    "autostart:default"
   ]
 }

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { useI18n } from "../i18n";
 import type { Locale } from "../i18n";
 
@@ -22,6 +23,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
   const [appVersion, setAppVersion] = useState("");
   const [configPath, setConfigPath] = useState("");
   const [recording, setRecording] = useState(false);
+  const [autoStart, setAutoStart] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "downloading" | "installing" | "failed">("idle");
   const [latestVersion, setLatestVersion] = useState("");
   const updateRef = useRef<Awaited<ReturnType<typeof check>> | null>(null);
@@ -83,6 +85,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
   useEffect(() => {
     getVersion().then(setAppVersion).catch(console.error);
     invoke<string>("get_config_path").then(setConfigPath).catch(console.error);
+    isEnabled().then(setAutoStart).catch(console.error);
   }, []);
 
   return (
@@ -122,6 +125,38 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
               }`}
             >
               JA
+            </button>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            {t("launch_at_login")}
+          </h3>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={async () => {
+                try {
+                  if (autoStart) {
+                    await disable();
+                    setAutoStart(false);
+                  } else {
+                    await enable();
+                    setAutoStart(true);
+                  }
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                autoStart ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                  autoStart ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
             </button>
           </div>
         </section>

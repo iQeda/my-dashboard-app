@@ -90,6 +90,7 @@ const translations = {
   "record": { en: "Record", ja: "記録" },
   "clear": { en: "Clear", ja: "解除" },
   "not_set": { en: "Not set", ja: "未設定" },
+  "launch_at_login": { en: "Launch at Login", ja: "ログイン時に起動" },
   "check_for_updates": { en: "Check for Updates", ja: "アップデートを確認" },
   "checking": { en: "Checking...", ja: "確認中..." },
   "up_to_date": { en: "Up to date", ja: "最新です" },
