@@ -141,6 +141,7 @@ const translations = {
   "shortcut_settings": { en: "Settings", ja: "設定" },
   "shortcut_escape": { en: "Close / Clear filters", ja: "閉じる / フィルター解除" },
   "shortcut_arrow": { en: "Move focus", ja: "フォーカス移動" },
+  "shortcut_emacs_nav": { en: "Move focus (Emacs-style)", ja: "フォーカス移動（Emacs 風）" },
   "shortcut_arrow_from_search": { en: "Move to list from search", ja: "検索からリストへ移動" },
   "shortcut_enter": { en: "Launch item", ja: "アイテムを起動" },
   "shortcut_click": { en: "Select item", ja: "アイテムを選択" },

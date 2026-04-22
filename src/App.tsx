@@ -243,7 +243,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
         return;
       }
 
-      const meta = e.metaKey || e.ctrlKey;
+      const meta = e.metaKey;
 
       // Layer 1: Meta/Ctrl shortcuts
       if (meta) {
@@ -311,19 +311,21 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       }
 
       // Layer 3: Arrow keys + Enter (items page)
-      if (pageView === "items" && e.key === "ArrowDown" && document.activeElement === searchInputRef.current) {
+      const isDownKey = e.key === "ArrowDown" || (e.ctrlKey && e.key === "n");
+      const isUpKey = e.key === "ArrowUp" || (e.ctrlKey && e.key === "p");
+      if (pageView === "items" && isDownKey && document.activeElement === searchInputRef.current) {
         e.preventDefault();
         searchInputRef.current?.blur();
         moveFocus(1);
         return;
       }
       if (pageView === "items" && document.activeElement !== searchInputRef.current) {
-        if (e.key === "ArrowDown") {
+        if (isDownKey) {
           e.preventDefault();
           moveFocus(1);
           return;
         }
-        if (e.key === "ArrowUp") {
+        if (isUpKey) {
           e.preventDefault();
           moveFocus(-1);
           return;

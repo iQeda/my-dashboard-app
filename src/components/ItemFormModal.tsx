@@ -285,7 +285,7 @@ export function ItemFormModal({
         if (emojiPickerOpenRef.current) return;
         onClose();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      if (e.metaKey && e.key === "Enter") {
         e.preventDefault();
         handleSubmit();
       }

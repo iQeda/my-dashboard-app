@@ -59,6 +59,7 @@ export function ShortcutHelper() {
       title: t("shortcut_items"),
       rows: [
         { keys: ["↑", "↓"], label: t("shortcut_arrow") },
+        { keys: ["Ctrl", "P", "/", "Ctrl", "N"], label: t("shortcut_emacs_nav") },
         { keys: ["↓"], label: t("shortcut_arrow_from_search") },
         { keys: ["Enter"], label: t("shortcut_enter") },
         { keys: ["Click"], label: t("shortcut_click") },
