@@ -154,8 +154,8 @@ Switch: Rust switch_config → config.json を上書き → reload
 - **Global Shortcut**: `tauri-plugin-global-shortcut` でアプリ非フォーカス時もランチャー表示。Settings の Record ボタンで設定（SKILL.md #11, #12）
 - **In-app Auto-update**: `tauri-plugin-updater` + `tauri-plugin-process` で Settings > About からアプリ内更新。Check for Updates → Update Now でダウンロード・インストール・再起動まで自動実行（手動 `brew` 不要）（SKILL.md #13）
 - **シングルクリック=選択、ダブルクリック=起動**: items ページでは `onSelect` でフォーカス、`onLaunch` でダブルクリック起動。DashboardOverview は `onSelect` なしなのでダブルクリックのみで起動
-- **キーボードナビゲーション**: `useKeyboardNavigation` hook で `↑↓` フォーカス移動、`Enter` で起動。`displayItems`（カテゴリグループ順に並べ替え済み）で表示順と一致
-- **集約キーボードハンドラー**: App.tsx の単一 `useEffect` で全ショートカットを管理。`focusedItemRef` + `hasActiveFiltersRef` で ref 参照し、リスナー再登録を最小化
+- **キーボードナビゲーション**: `useKeyboardNavigation` hook で `↑↓` / `Ctrl+P` / `Ctrl+N` フォーカス移動、`Enter` で起動。`displayItems`（カテゴリグループ順に並べ替え済み）で表示順と一致。CommandPalette も同じキーで選択移動
+- **集約キーボードハンドラー**: App.tsx の単一 `useEffect` で全ショートカットを管理。`focusedItemRef` + `hasActiveFiltersRef` で ref 参照し、リスナー再登録を最小化。修飾キー判定は `e.metaKey` のみ（Mac 専用アプリのため `ctrlKey` は `Ctrl+N`/`Ctrl+P` の Emacs 風ナビ用に温存）
 - **ツールバードロップダウン**: SearchBar からコントロールを分離し、Display/Filter/Sort の3グループに分類。`ToolbarDropdown` プリミティブで統一
 - **ShortcutHelper 右下固定**: ツールバーから分離し、全ページで画面右下に固定表示。ポップオーバーは上方向に展開
 - **サイドバー件数表示**: All Items / Favorites / 各カテゴリ / 各タグの横に件数を `useMemo` で集計・表示
@@ -185,7 +185,8 @@ Switch: Rust switch_config → config.json を上書き → reload
 | `⌘Enter` | 選択中アイテムを起動 |
 | `Esc` | モーダル閉じ → 検索ブラー |
 | `↑` / `↓` | アイテム間フォーカス移動 |
-| `↓`（検索バー時） | 検索バーを抜けてリストへ |
+| `Ctrl+P` / `Ctrl+N` | アイテム間フォーカス移動（Emacs 風、items ページ / CommandPalette 共通） |
+| `↓` / `Ctrl+N`（検索バー時） | 検索バーを抜けてリストへ |
 | `Enter` | フォーカス中アイテムを起動 |
 
 ## Tauri WebView Gotchas

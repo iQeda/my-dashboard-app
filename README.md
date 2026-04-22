@@ -87,6 +87,8 @@ Actions が自動実行する内容:
 | `⌘N` | アイテム追加 |
 | `⌘Enter` | モーダル内で Save |
 | `⌘,` | Settings |
+| `↑` / `↓` | アイテム間フォーカス移動（items ページ / CommandPalette） |
+| `Ctrl+P` / `Ctrl+N` | アイテム間フォーカス移動（Emacs 風、items ページ / CommandPalette） |
 | `Escape` | モーダル / パレットを閉じる |
 | Global Shortcut (カスタム) | アプリ非フォーカス時でもランチャー（コマンドパレット）を表示。Settings で設定 |
 
