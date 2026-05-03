@@ -42,14 +42,15 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
     | { kind: "category"; data: Category };
 
   const results: Result[] = (() => {
+    const q = query.toLowerCase();
     if (activeTab === "recent") {
       const itemMap = new Map(items.map((i) => [i.id, i]));
       return recentAccess
         .map((e) => itemMap.get(e.id))
         .filter((i): i is DashboardItem => i !== undefined)
+        .filter((i) => i.name.toLowerCase().includes(q))
         .map((data) => ({ kind: "item" as const, data }));
     }
-    const q = query.toLowerCase();
     const matchedCategories: Result[] = categoryList
       .filter((c) => c.label.toLowerCase().includes(q))
       .map((data) => ({ kind: "category", data }));
