@@ -83,6 +83,26 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.metaKey && e.key === "o") {
+      e.preventDefault();
+      const r = results[selectedIndex];
+      let targets: DashboardItem[] = [];
+      if (r?.kind === "category") {
+        targets = items.filter((it) => it.category === r.data.id && !it.excludeFromOpenAll);
+      } else if (r?.kind === "tag") {
+        targets = items.filter((it) => it.tags.includes(r.data.id) && !it.excludeFromOpenAll);
+      } else {
+        targets = results
+          .filter((res): res is { kind: "item"; data: DashboardItem } => res.kind === "item")
+          .map((res) => res.data)
+          .filter((it) => !it.excludeFromOpenAll);
+      }
+      if (targets.length > 0) {
+        onOpenAll(targets);
+        onClose();
+      }
+      return;
+    }
     if (e.key === "Tab") {
       e.preventDefault();
       setActiveTab(activeTab === "all" ? "recent" : "all");
@@ -272,6 +292,22 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
               </div>
             );
           })}
+        </div>
+
+        <div className="flex items-center gap-4 px-3 py-2 border-t border-gray-100 dark:border-gray-700 text-[10px] text-gray-500 dark:text-gray-400">
+          <span className="flex items-center gap-1">
+            <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700">↑</kbd>
+            <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700">↓</kbd>
+            {t("navigate")}
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700">Enter</kbd>
+            {t("select")}
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700">⌘O</kbd>
+            {t("open_all")}
+          </span>
         </div>
       </div>
     </div>
