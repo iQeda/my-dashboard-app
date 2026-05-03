@@ -632,6 +632,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           onToggleTag={(id) => { if (!selectedTags.has(id)) toggleTag(id); navigateTo("items"); }}
           onToggleCategory={(id) => { if (selectedCategory !== id) toggleCategory(id); navigateTo("items"); }}
           onLaunch={launchAndRecord}
+          onOpenAll={async (targets) => { for (const it of targets) await launchAndRecord(it); }}
           onEdit={handleEdit}
           onClose={() => setShowCommandPalette(false)}
         />
