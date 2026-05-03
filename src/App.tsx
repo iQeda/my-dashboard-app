@@ -274,7 +274,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           navigateTo("dashboard");
           return;
         }
-        if (e.shiftKey && e.key === "A" && pageView === "items" && hasActiveFiltersRef.current) {
+        if (e.key === "o" && !e.shiftKey && pageView === "items" && hasActiveFiltersRef.current) {
           e.preventDefault();
           for (const item of filteredItems.filter((i) => !i.excludeFromOpenAll)) {
             launchAndRecord(item);
@@ -498,6 +498,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 {t("open_all")} ({filteredItems.filter((i) => !i.excludeFromOpenAll).length})
+                <kbd className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-white/20 border border-white/30">⌘O</kbd>
               </button>
               <button
                 onClick={handleAdd}
@@ -507,6 +508,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 {t("add")}
+                <kbd className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-white/20 border border-white/30">⌘N</kbd>
               </button>
             </>
           )}

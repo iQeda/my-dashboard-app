@@ -70,7 +70,7 @@ export function ShortcutHelper() {
       title: t("shortcut_actions"),
       rows: [
         { keys: ["⌘", "N"], label: t("shortcut_new") },
-        { keys: ["⌘", "⇧", "A"], label: t("shortcut_open_all") },
+        { keys: ["⌘", "O"], label: t("shortcut_open_all") },
         { keys: ["⌘", "E"], label: t("shortcut_edit") },
         { keys: ["⌘", "⇧", "F"], label: t("shortcut_favorite") },
         { keys: ["⌘", "Enter"], label: t("shortcut_launch") },

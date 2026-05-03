@@ -69,6 +69,8 @@ const translations = {
   "clear_all": { en: "Clear All", ja: "すべて解除" },
   "combined_filter": { en: "Category + Workspace", ja: "カテゴリ + ワークスペース" },
   "open_all": { en: "Open All", ja: "すべて開く" },
+  "navigate": { en: "Navigate", ja: "移動" },
+  "select": { en: "Select", ja: "選択" },
 
   // Context Menu
   "favorite": { en: "Favorite", ja: "お気に入り" },
