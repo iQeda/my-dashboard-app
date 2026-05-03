@@ -9,6 +9,7 @@ interface CommandPaletteProps {
   readonly onToggleTag: (tagId: string) => void;
   readonly onToggleCategory: (catId: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
+  readonly onOpenAll: (items: readonly DashboardItem[]) => void;
   readonly onEdit: (item: DashboardItem) => void;
   readonly onClose: () => void;
 }
@@ -18,7 +19,7 @@ const DEFAULT_ICONS: Record<string, string> = {
   url: "\uD83C\uDF10",
 };
 
-export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onToggleCategory, onLaunch, onEdit, onClose }: CommandPaletteProps) {
+export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onToggleCategory, onLaunch, onOpenAll, onEdit, onClose }: CommandPaletteProps) {
   const { t } = useI18n();
   const [query, setQueryRaw] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -120,23 +121,41 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
             const isSelected = i === selectedIndex;
             if (result.kind === "category") {
               const cat = result.data;
+              const targets = items.filter((it) => it.category === cat.id && !it.excludeFromOpenAll);
               return (
-                <button
+                <div
                   key={`cat-${cat.id}`}
-                  onClick={() => executeResult(result)}
                   onMouseEnter={() => setSelectedIndex(i)}
-                  className={`flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm transition-colors cursor-pointer ${
+                  className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors ${
                     isSelected ? "bg-blue-50 dark:bg-blue-900/30" : ""
                   }`}
                 >
-                  <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                  <span className="flex-1 text-gray-800 dark:text-gray-200">{cat.label}</span>
-                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">{t("category")}</span>
-                </button>
+                  <button
+                    onClick={() => executeResult(result)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
+                  >
+                    <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                    <span className="flex-1 text-gray-800 dark:text-gray-200">{cat.label}</span>
+                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">{t("category")}</span>
+                  </button>
+                  {targets.length > 0 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onOpenAll(targets); onClose(); }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer shrink-0"
+                      title={`${t("open_all")} (${targets.length})`}
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      {targets.length}
+                    </button>
+                  )}
+                </div>
               );
             }
             if (result.kind === "tag") {
               const cat = result.data;
+              const targets = items.filter((it) => it.tags.includes(cat.id) && !it.excludeFromOpenAll);
               return (
                 <div
                   key={`tag-${cat.id}`}
@@ -156,6 +175,18 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
                     <span className="flex-1 text-gray-800 dark:text-gray-200">{cat.label}</span>
                     <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">Workspace</span>
                   </button>
+                  {targets.length > 0 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onOpenAll(targets); onClose(); }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer shrink-0"
+                      title={`${t("open_all")} (${targets.length})`}
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      {targets.length}
+                    </button>
+                  )}
                 </div>
               );
             }
