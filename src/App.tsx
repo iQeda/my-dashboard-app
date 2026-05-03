@@ -629,6 +629,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           items={config.items}
           tagDefs={config.tagDefs}
           categoryList={config.categoryList ?? []}
+          recentAccess={config.recentAccess ?? []}
           onToggleTag={(id) => { if (!selectedTags.has(id)) toggleTag(id); navigateTo("items"); }}
           onToggleCategory={(id) => { if (selectedCategory !== id) toggleCategory(id); navigateTo("items"); }}
           onLaunch={launchAndRecord}

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { DashboardItem, TagDef, Category } from "../types";
+import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../types";
 import { useI18n } from "../i18n";
 
 interface CommandPaletteProps {
   readonly items: readonly DashboardItem[];
   readonly tagDefs: readonly TagDef[];
   readonly categoryList: readonly Category[];
+  readonly recentAccess: readonly RecentAccessEntry[];
   readonly onToggleTag: (tagId: string) => void;
   readonly onToggleCategory: (catId: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
@@ -14,16 +15,22 @@ interface CommandPaletteProps {
   readonly onClose: () => void;
 }
 
+type Tab = "all" | "recent";
+
 const DEFAULT_ICONS: Record<string, string> = {
   app: "\uD83D\uDDA5\uFE0F",
   url: "\uD83C\uDF10",
 };
 
-export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onToggleCategory, onLaunch, onOpenAll, onEdit, onClose }: CommandPaletteProps) {
+export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onToggleTag, onToggleCategory, onLaunch, onOpenAll, onEdit, onClose }: CommandPaletteProps) {
   const { t } = useI18n();
-  const [query, setQueryRaw] = useState("");
+  const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const setQuery = useCallback((v: string) => { setQueryRaw(v); setSelectedIndex(0); }, []);
+  const [activeTab, setActiveTab] = useState<Tab>("all");
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [activeTab, query]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
@@ -35,6 +42,13 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
     | { kind: "category"; data: Category };
 
   const results: Result[] = (() => {
+    if (activeTab === "recent") {
+      const itemMap = new Map(items.map((i) => [i.id, i]));
+      return recentAccess
+        .map((e) => itemMap.get(e.id))
+        .filter((i): i is DashboardItem => i !== undefined)
+        .map((data) => ({ kind: "item" as const, data }));
+    }
     const q = query.toLowerCase();
     const matchedCategories: Result[] = categoryList
       .filter((c) => c.label.toLowerCase().includes(q))
@@ -68,7 +82,10 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      setActiveTab(activeTab === "all" ? "recent" : "all");
+    } else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
       e.preventDefault();
       setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
     } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
@@ -121,6 +138,25 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
           <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700">
             ESC
           </kbd>
+        </div>
+
+        <div className="flex items-center gap-1 px-2 pt-2 border-b border-gray-100 dark:border-gray-700">
+          {(["all", "recent"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-t cursor-pointer transition-colors ${
+                activeTab === tab
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-500 -mb-px"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              {t(tab === "all" ? "all_items" : "recent")}
+            </button>
+          ))}
+          <span className="ml-auto pr-2 text-[10px] text-gray-400 dark:text-gray-500">
+            <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700">Tab</kbd>
+          </span>
         </div>
 
         <div ref={listRef} className="max-h-80 overflow-y-auto overscroll-contain">

@@ -311,7 +311,7 @@ export function useConfig() {
       const current = configRef.current;
       if (!current) return;
       const prev = (current.recentAccess ?? []).filter((e) => e.id !== itemId);
-      const next: readonly RecentAccessEntry[] = [{ id: itemId, at: Date.now() }, ...prev].slice(0, 20);
+      const next: readonly RecentAccessEntry[] = [{ id: itemId, at: Date.now() }, ...prev].slice(0, 50);
       const newConfig: AppConfig = { ...current, recentAccess: next };
       await saveConfig(newConfig);
     },
