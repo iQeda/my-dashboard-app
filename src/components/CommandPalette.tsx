@@ -26,6 +26,7 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
   const setQuery = useCallback((v: string) => { setQueryRaw(v); setSelectedIndex(0); }, []);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const isComposingRef = useRef(false);
 
   type Result =
     | { kind: "item"; data: DashboardItem }
@@ -73,6 +74,7 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
       e.preventDefault();
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
     } else if (e.key === "Enter" && results[selectedIndex]) {
+      if (isComposingRef.current || e.nativeEvent.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       e.nativeEvent.stopImmediatePropagation();
       executeResult(results[selectedIndex]);
@@ -105,6 +107,8 @@ export function CommandPalette({ items, tagDefs, categoryList, onToggleTag, onTo
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            onCompositionStart={() => { isComposingRef.current = true; }}
+            onCompositionEnd={() => { isComposingRef.current = false; }}
             placeholder={t("search_items_tags")}
             className="flex-1 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
           />
