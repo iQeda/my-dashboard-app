@@ -197,9 +197,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     try {
       if (item.type === "app") {
         await invoke("launch_app", { name: item.target });
-      } else {
-        await invoke("open_url", { url: item.target });
+        await recordAccess(item.id);
+        return;
       }
+      await invoke("open_url", { url: item.target });
       await recordAccess(item.id);
     } catch (e) {
       console.error("Failed to launch:", e);
@@ -361,9 +362,11 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   const handleSave = async (item: DashboardItem, newTagDefs: readonly TagDef[], newCategoryList: readonly Category[]) => {
     if (editingItem) {
       await updateItem(item, newTagDefs, newCategoryList);
-    } else {
-      await addItem(item, newTagDefs, newCategoryList);
+      setShowModal(false);
+      setEditingItem(null);
+      return;
     }
+    await addItem(item, newTagDefs, newCategoryList);
     setShowModal(false);
     setEditingItem(null);
   };
@@ -590,9 +593,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             try {
               if (shortcut) {
                 await invoke("register_shortcut", { shortcut });
-              } else {
-                await invoke("unregister_all_shortcuts");
+                await updateGlobalShortcut(shortcut);
+                return;
               }
+              await invoke("unregister_all_shortcuts");
               await updateGlobalShortcut(shortcut);
             } catch (e) {
               console.error("Failed to register shortcut:", e);

@@ -20,6 +20,7 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
+      'no-else-return': ['error', { allowElseIf: false }],
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/refs': 'warn',
     },

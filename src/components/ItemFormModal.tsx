@@ -161,16 +161,16 @@ export function ItemFormModal({
       setSelectedTags([...item.tags]);
       setSelectedCategory(item.category ?? "");
       setExcludeFromOpenAll(item.excludeFromOpenAll ?? false);
-    } else {
-      setName("");
-      setType("app");
-      setTarget("");
-      setIcon("");
-      setDescription("");
-      setSelectedTags([...defaultTags]);
-      setSelectedCategory(defaultCategory ?? "");
-      setExcludeFromOpenAll(false);
+      return;
     }
+    setName("");
+    setType("app");
+    setTarget("");
+    setIcon("");
+    setDescription("");
+    setSelectedTags([...defaultTags]);
+    setSelectedCategory(defaultCategory ?? "");
+    setExcludeFromOpenAll(false);
   }, [item, tagDefs, categoryList, defaultTags, defaultCategory]);
 
   const validate = useCallback((n: string, tgt: string, tp: string) => {
@@ -178,7 +178,9 @@ export function ItemFormModal({
     if (!n.trim()) e.name = t("required");
     if (!tgt.trim()) {
       e.target = tp === "app" ? t("select_app") : t("enter_url");
-    } else if (tp === "url" && !/^https?:\/\/.+/.test(tgt.trim())) {
+      return e;
+    }
+    if (tp === "url" && !/^https?:\/\/.+/.test(tgt.trim())) {
       e.target = t("url_invalid");
     }
     return e;
