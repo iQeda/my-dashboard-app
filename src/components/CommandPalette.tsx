@@ -89,6 +89,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.metaKey && e.key === "o") {
       e.preventDefault();
+      e.nativeEvent.stopImmediatePropagation();
       const r = results[selectedIndex];
       let targets: DashboardItem[] = [];
       if (r?.kind === "category") {
