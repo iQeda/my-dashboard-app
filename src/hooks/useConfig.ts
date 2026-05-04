@@ -157,7 +157,8 @@ export function useConfig() {
         const oldTag = current.tagDefs.find((t) => t.id === id);
         if (oldTag && !oldTag.pinned && updates.pinned) {
           pinnedOrder = [...pinnedOrder, effectiveId];
-        } else if (oldTag && oldTag.pinned && !updates.pinned) {
+        }
+        if (oldTag && oldTag.pinned && !updates.pinned) {
           pinnedOrder = pinnedOrder.filter((pid) => pid !== effectiveId);
         }
       }
@@ -215,7 +216,8 @@ export function useConfig() {
         const oldCat = (current.categoryList ?? []).find((c) => c.id === id);
         if (oldCat && !oldCat.pinned && updates.pinned) {
           pinnedOrder = [...pinnedOrder, effectiveId];
-        } else if (oldCat && oldCat.pinned && !updates.pinned) {
+        }
+        if (oldCat && oldCat.pinned && !updates.pinned) {
           pinnedOrder = pinnedOrder.filter((pid) => pid !== effectiveId);
         }
       }

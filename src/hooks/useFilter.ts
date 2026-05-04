@@ -49,9 +49,9 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
         const next = new Set(prev);
         if (next.has(tagId)) {
           next.delete(tagId);
-        } else {
-          next.add(tagId);
+          return next;
         }
+        next.add(tagId);
         return next;
       }
       return prev.has(tagId) ? new Set() : new Set([tagId]);

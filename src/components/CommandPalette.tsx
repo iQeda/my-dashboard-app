@@ -72,11 +72,15 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
     async (result: Result) => {
       if (result.kind === "item") {
         onLaunch(result.data as DashboardItem);
-      } else if (result.kind === "tag") {
-        onToggleTag(result.data.id);
-      } else {
-        onToggleCategory(result.data.id);
+        onClose();
+        return;
       }
+      if (result.kind === "tag") {
+        onToggleTag(result.data.id);
+        onClose();
+        return;
+      }
+      onToggleCategory(result.data.id);
       onClose();
     },
     [onToggleTag, onToggleCategory, onLaunch, onClose],
@@ -89,30 +93,31 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
       let targets: DashboardItem[] = [];
       if (r?.kind === "category") {
         targets = items.filter((it) => it.category === r.data.id && !it.excludeFromOpenAll);
-      } else if (r?.kind === "tag") {
+      }
+      if (r?.kind === "tag") {
         targets = items.filter((it) => it.tags.includes(r.data.id) && !it.excludeFromOpenAll);
-      } else {
-        targets = results
-          .filter((res): res is { kind: "item"; data: DashboardItem } => res.kind === "item")
-          .map((res) => res.data)
-          .filter((it) => !it.excludeFromOpenAll);
       }
-      if (targets.length > 0) {
-        onOpenAll(targets);
-        onClose();
-      }
+      if (targets.length === 0) return;
+      onOpenAll(targets);
+      onClose();
       return;
     }
     if (e.key === "Tab") {
       e.preventDefault();
       setActiveTab(activeTab === "all" ? "recent" : "all");
-    } else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
+      return;
+    }
+    if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
       e.preventDefault();
       setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
-    } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
+      return;
+    }
+    if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
       e.preventDefault();
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter" && results[selectedIndex]) {
+      return;
+    }
+    if (e.key === "Enter" && results[selectedIndex]) {
       if (
         isComposingRef.current ||
         e.nativeEvent.isComposing ||
@@ -122,7 +127,9 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
       e.preventDefault();
       e.nativeEvent.stopImmediatePropagation();
       executeResult(results[selectedIndex]);
-    } else if (e.key === "Escape") {
+      return;
+    }
+    if (e.key === "Escape") {
       onClose();
     }
   };

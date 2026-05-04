@@ -42,13 +42,20 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
       const mods: string[] = [];
       const keys: string[] = [];
       for (const k of keysPressed.current) {
-        if (k === "Meta" || k === "Control") { if (!mods.includes("CommandOrControl")) mods.push("CommandOrControl"); }
-        else if (k === "Shift") mods.push("Shift");
-        else if (k === "Alt") mods.push("Alt");
-        else {
-          const mapped = KEY_MAP[k] ?? (k.length === 1 ? k.toUpperCase() : k);
-          keys.push(mapped);
+        if (k === "Meta" || k === "Control") {
+          if (!mods.includes("CommandOrControl")) mods.push("CommandOrControl");
+          continue;
         }
+        if (k === "Shift") {
+          mods.push("Shift");
+          continue;
+        }
+        if (k === "Alt") {
+          mods.push("Alt");
+          continue;
+        }
+        const mapped = KEY_MAP[k] ?? (k.length === 1 ? k.toUpperCase() : k);
+        keys.push(mapped);
       }
       if (mods.length === 0 || keys.length === 0) return null;
       return [...mods, ...keys].join("+");
@@ -140,10 +147,10 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
                   if (autoStart) {
                     await disable();
                     setAutoStart(false);
-                  } else {
-                    await enable();
-                    setAutoStart(true);
+                    return;
                   }
+                  await enable();
+                  setAutoStart(true);
                 } catch (e) {
                   console.error(e);
                 }
@@ -266,9 +273,9 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
                   if (update) {
                     setLatestVersion(update.version);
                     setUpdateStatus("available");
-                  } else {
-                    setUpdateStatus("up-to-date");
+                    return;
                   }
+                  setUpdateStatus("up-to-date");
                 } catch {
                   setUpdateStatus("failed");
                 }
