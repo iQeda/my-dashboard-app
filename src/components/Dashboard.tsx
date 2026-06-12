@@ -140,7 +140,7 @@ export function Dashboard({ items, tagDefs, categoryList, cardSize, viewMode, on
           <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="text-xs font-medium text-gray-400 dark:text-gray-500">Add Item</span>
+          <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{t("add_item")}</span>
         </button>
       </div>
     </div>

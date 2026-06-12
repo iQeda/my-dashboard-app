@@ -199,7 +199,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
             onKeyDown={handleKeyDown}
             onCompositionStart={() => { isComposingRef.current = true; }}
             onCompositionEnd={() => { isComposingRef.current = false; lastCompositionEndAtRef.current = Date.now(); }}
-            placeholder={t("search_items_tags")}
+            placeholder={t("search_items_workspaces")}
             className="flex-1 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
           />
           <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700">
@@ -258,7 +258,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
                   key={`tag-${cat.id}`}
                   icon={<span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />}
                   label={cat.label}
-                  badge="Workspace"
+                  badge={t("workspace")}
                   isSelected={isSelected}
                   targets={targets}
                   openAllTitle={`${t("open_all")} (${targets.length})`}

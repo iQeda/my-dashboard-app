@@ -67,7 +67,7 @@ cargo tauri build
 タグを push するだけで GitHub Actions が全自動でリリースします:
 
 ```bash
-# 1. tauri.conf.json と SettingsModal.tsx のバージョンを bump
+# 1. tauri.conf.json のバージョンを bump（Settings の表示は getVersion() で自動反映）
 # 2. PR → CI pass → マージ
 # 3. タグ push → 自動リリース
 git tag v0.3.0
@@ -154,7 +154,7 @@ Actions が自動実行する内容:
 - **ローカル保存** - iCloud 未使用時は `~/.config/my-dashboard-app/config.json`
 - **Import** - 別名プロファイルとして保存（既存 config を上書きしない）
 - **Export** - 現在の設定をファイルに書き出し
-- **Profile 切替** - Settings 内で複数プロファイルを管理・切替
+- **Load Config File** - Settings から任意の JSON を直接アクティブ config として読み込み（読み込み前に `backups/` へ自動バックアップ）
 
 ## Project Structure
 
@@ -256,7 +256,7 @@ my-dashboard-app/
 - `categoryList`: カテゴリ定義 (id, label)
 - `emojiHistory`: 使用済み絵文字の履歴 (最大20個)
 - `viewMode`, `cardSize`, `sidebarWidth`, `locale`: UI 状態の永続化
-- `recentAccess`: 最近アクセスしたアイテムの配列 (`{id, at}` 形式、`at` は Unix timestamp (ms)、最大20件)
+- `recentAccess`: 最近アクセスしたアイテムの配列 (`{id, at}` 形式、`at` は Unix timestamp (ms)、最大50件)
 - `globalShortcut`: システム全体のグローバルショートカットキー (例: `"CommandOrControl+Shift+Space"`)
 - `sidebarCategoriesOpen`: サイドバー Categories セクションの開閉状態
 - `sidebarTagsOpen`: サイドバー Tags セクションの開閉状態
@@ -283,4 +283,4 @@ my-dashboard-app/
 - `config.json` - アクティブな設定（Default）
 - `config-{name}.json` - Import されたプロファイル
 
-Settings (`⌘,`) > Profiles からワンクリックで切替可能。切替時は選択したプロファイルの内容が `config.json` にコピーされる。
+Settings (`⌘,`) > Load Config File で任意の JSON を直接アクティブ config として読み込める。読み込み前に `backups/` サブディレクトリへタイムスタンプ付きの自動バックアップが作成される。
