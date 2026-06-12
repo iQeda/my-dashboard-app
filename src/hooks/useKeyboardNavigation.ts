@@ -31,5 +31,5 @@ export function useKeyboardNavigation({ items, enabled }: UseKeyboardNavigationO
     [items, focusedIndex],
   );
 
-  return { focusedIndex, setFocusedIndex, focusedItem, moveFocus, resetFocus } as const;
+  return { setFocusedIndex, focusedItem, moveFocus, resetFocus } as const;
 }

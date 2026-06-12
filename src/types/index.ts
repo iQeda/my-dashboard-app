@@ -44,7 +44,6 @@ export interface AppConfig {
   readonly combinedFilter?: boolean;
   readonly multiTagMode?: boolean;
   readonly pinnedOrder?: readonly string[];
-  readonly hiddenProfiles?: readonly string[];
   readonly dismissedUpdateVersion?: string;
   readonly recentAccess?: readonly RecentAccessEntry[];
 }
@@ -57,11 +56,4 @@ export interface RecentAccessEntry {
 export interface InstalledApp {
   readonly name: string;
   readonly path: string;
-}
-
-export interface ConfigProfile {
-  readonly name: string;
-  readonly filename: string;
-  readonly path: string;
-  readonly active: boolean;
 }

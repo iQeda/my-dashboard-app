@@ -275,14 +275,6 @@ pub fn import_config(path: String, profile_name: String) -> Result<AppConfig, St
     Ok(config)
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct ConfigProfile {
-    pub name: String,
-    pub filename: String,
-    pub path: String,
-    pub active: bool,
-}
-
 fn backup_config() {
     let active = config_path();
     if !active.exists() { return; }
@@ -294,53 +286,6 @@ fn backup_config() {
         .unwrap_or(0);
     let backup = backup_dir.join(format!("config-{}.json", timestamp));
     let _ = fs::copy(&active, &backup);
-}
-
-#[tauri::command]
-pub fn list_config_profiles() -> Result<Vec<ConfigProfile>, String> {
-    let dir = config_dir();
-    let active_path = config_path();
-
-    let entries = fs::read_dir(&dir).map_err(|e| e.to_string())?;
-    let mut profiles: Vec<ConfigProfile> = Vec::new();
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_file() { continue; }
-        if path.extension().and_then(|e| e.to_str()) != Some("json") { continue; }
-        let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        // Exclude backup files and .bak files
-        if filename.starts_with("config-backup-") || filename.ends_with(".bak") { continue; }
-        let name = path.to_string_lossy().to_string();
-        profiles.push(ConfigProfile {
-            name,
-            filename: filename.clone(),
-            path: path.to_string_lossy().to_string(),
-            active: path == active_path,
-        });
-    }
-
-    profiles.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    Ok(profiles)
-}
-
-#[tauri::command]
-pub fn switch_config(filename: String) -> Result<AppConfig, String> {
-    let path = config_dir().join(&filename);
-    if !path.exists() {
-        return Err(format!("Config file not found: {}", filename));
-    }
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let config: AppConfig =
-        serde_json::from_str(&content).map_err(|e| e.to_string())?;
-
-    backup_config();
-
-    // Copy to config.json to make it active
-    let active_dest = config_dir().join("config.json");
-    fs::write(&active_dest, &content).map_err(|e| e.to_string())?;
-
-    Ok(config)
 }
 
 #[tauri::command]

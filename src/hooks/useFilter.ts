@@ -93,10 +93,6 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
     });
   }, []);
 
-  const cycleSortOrder = useCallback(() => {
-    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-  }, []);
-
   const clearFilters = useCallback(() => {
     setSelectedTags(new Set());
     setSelectedCategory(null);
@@ -124,7 +120,6 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
     toggleFavoritesFilter,
     cycleTypeFilter,
     setSearchQuery,
-    cycleSortOrder,
     setSortOrder,
     setTypeFilter,
     clearFilters,

@@ -18,7 +18,6 @@ const translations = {
   "none": { en: "None", ja: "なし" },
   "duplicate": { en: "Duplicate", ja: "複製" },
   "no_results": { en: "No results", ja: "結果なし" },
-  "active": { en: "Active", ja: "有効" },
   "required": { en: "Required", ja: "必須" },
   "loading": { en: "Loading...", ja: "読み込み中..." },
 
@@ -61,8 +60,6 @@ const translations = {
   "search_items_tags": { en: "Search items and workspaces...", ja: "アイテムとワークスペースを検索..." },
 
   // Sort / Filter
-  "sort_asc": { en: "A → Z", ja: "A → Z" },
-  "sort_desc": { en: "Z → A", ja: "Z → A" },
   "sort_asc_name": { en: "Sort A → Z", ja: "昇順ソート" },
   "sort_desc_name": { en: "Sort Z → A", ja: "降順ソート" },
   "type_all": { en: "All", ja: "すべて" },
@@ -79,11 +76,9 @@ const translations = {
   // Settings
   "config": { en: "Config", ja: "設定ファイル" },
   "current_config_file": { en: "Current config file", ja: "現在の設定ファイル" },
-  "profiles": { en: "Profiles", ja: "プロファイル" },
   "data": { en: "Data", ja: "データ" },
   "import_config": { en: "Import Config (as new profile)", ja: "設定をインポート（新規プロファイル）" },
   "load_config_file": { en: "Load Config File", ja: "設定ファイルを読み込む" },
-  "remove": { en: "Remove", ja: "除外" },
   "export_config": { en: "Export Config", ja: "設定をエクスポート" },
   "about": { en: "About", ja: "バージョン情報" },
   "language": { en: "Language", ja: "言語" },
@@ -107,7 +102,6 @@ const translations = {
 
   // Dashboard
   "uncategorized": { en: "Uncategorized", ja: "未分類" },
-  "no_items_match": { en: "No items match your filter.", ja: "条件に一致するアイテムがありません。" },
 
   // Emoji Picker
   "choose_icon": { en: "Choose icon", ja: "アイコンを選択" },
@@ -157,7 +151,7 @@ const translations = {
 
 type TranslationKey = keyof typeof translations;
 
-export type TranslationFn = (key: TranslationKey) => string;
+type TranslationFn = (key: TranslationKey) => string;
 
 function createTranslator(locale: Locale): TranslationFn {
   return (key: TranslationKey) => translations[key]?.[locale] ?? key;
