@@ -20,6 +20,36 @@ import type { Locale } from "./i18n";
 import { DashboardOverview } from "./components/DashboardOverview";
 import type { DashboardItem, TagDef, Category, CardSize, ViewMode, PageView } from "./types";
 
+// Display-order items (grouped by category, matching Dashboard rendering)
+// TODO(Phase 3): src/utils/groupItems.ts へ抽出予定（テスト用に暫定 export）
+// eslint-disable-next-line react-refresh/only-export-components
+export function computeDisplayItems(
+  filteredItems: readonly DashboardItem[],
+  catList: readonly Category[],
+): readonly DashboardItem[] {
+  if (!filteredItems.some((i) => i.category)) return filteredItems;
+
+  const groups = new Map<string, DashboardItem[]>();
+  for (const item of filteredItems) {
+    const catId = item.category ?? "";
+    if (!groups.has(catId)) groups.set(catId, []);
+    groups.get(catId)!.push(item);
+  }
+
+  const result: DashboardItem[] = [];
+  for (const cat of catList) {
+    const g = groups.get(cat.id);
+    if (g) { result.push(...g); groups.delete(cat.id); }
+  }
+  const uncategorized = groups.get("");
+  if (uncategorized) result.push(...uncategorized);
+  for (const [catId, g] of groups) {
+    if (catId === "") continue;
+    result.push(...g);
+  }
+  return result;
+}
+
 export default function App() {
   const {
     config,
@@ -119,30 +149,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Compute display-order items (grouped by category, matching Dashboard rendering)
-  const displayItems = useMemo(() => {
-    const catList = config?.categoryList ?? [];
-    if (!filteredItems.some((i) => i.category)) return filteredItems;
-
-    const groups = new Map<string, DashboardItem[]>();
-    for (const item of filteredItems) {
-      const catId = item.category ?? "";
-      if (!groups.has(catId)) groups.set(catId, []);
-      groups.get(catId)!.push(item);
-    }
-
-    const result: DashboardItem[] = [];
-    for (const cat of catList) {
-      const g = groups.get(cat.id);
-      if (g) { result.push(...g); groups.delete(cat.id); }
-    }
-    const uncategorized = groups.get("");
-    if (uncategorized) result.push(...uncategorized);
-    for (const [catId, g] of groups) {
-      if (catId === "") continue;
-      result.push(...g);
-    }
-    return result;
-  }, [filteredItems, config?.categoryList]);
+  const displayItems = useMemo(
+    () => computeDisplayItems(filteredItems, config?.categoryList ?? []),
+    [filteredItems, config?.categoryList],
+  );
 
   const { focusedItem, setFocusedIndex, moveFocus, resetFocus } = useKeyboardNavigation({
     items: displayItems,

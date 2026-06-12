@@ -25,9 +25,13 @@ cargo tauri build        # プロダクションビルド (.app / .dmg)
 pnpm build               # フロントエンドのみビルド
 
 # チェック
-npx tsc --noEmit         # TypeScript 型チェック
+npx tsc -b               # TypeScript 型チェック（solution-style tsconfig のため -b 必須。--noEmit は 0 ファイル検査の no-op になる）
 cd src-tauri && cargo check  # Rust コンパイルチェック
 pnpm lint                # ESLint
+
+# テスト
+pnpm test                # vitest（フロントエンドの characterization tests）
+cd src-tauri && cargo test   # Rust（AppConfig serde ラウンドトリップ）
 ```
 
 ## Architecture
