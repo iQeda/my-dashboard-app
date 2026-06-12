@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { AppConfig, DashboardItem, TagDef, Category, ViewPrefs, RecentAccessEntry } from "../types";
 import type { Locale } from "../i18n";
+import { slugify } from "../utils/labels";
 
 const updateEmojiHistory = (current: AppConfig, emoji?: string): readonly string[] | undefined => {
   if (!emoji) return current.emojiHistory;
@@ -18,9 +19,7 @@ function renameAndRepin<T extends { readonly id: string; readonly label: string;
   updates: NoInfer<Partial<T>>,
 ): { readonly defs: readonly T[]; readonly pinnedOrder: readonly string[]; readonly newId: string; readonly idChanged: boolean } {
   // Generate new ID from new label if label changed
-  const newId = updates.label
-    ? updates.label.toLowerCase().replace(/\s+/g, "-")
-    : id;
+  const newId = updates.label ? slugify(updates.label) : id;
   const idChanged = Boolean(newId !== id && updates.label);
   const effectiveId = idChanged ? newId : id;
   // Update pinnedOrder atomically when pinned changes

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { DashboardItem, TagDef, CardSize } from "../types";
 import { ContextMenu } from "./ContextMenu";
 import { useI18n } from "../i18n";
+import { itemIcon } from "../constants";
 
 interface ItemCardProps {
   readonly item: DashboardItem;
@@ -16,11 +17,6 @@ interface ItemCardProps {
   readonly onToggleTag?: (tagId: string) => void;
   readonly isFocused?: boolean;
 }
-
-const DEFAULT_ICONS: Record<string, string> = {
-  app: "\uD83D\uDDA5\uFE0F",
-  url: "\uD83C\uDF10",
-};
 
 const PADDING: Record<CardSize, string> = {
   sm: "p-4",
@@ -116,7 +112,7 @@ export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, on
         className={`flex flex-col items-start ${GAP[cardSize]} cursor-pointer w-full flex-1`}
       >
         <div className={`flex items-start ${GAP[cardSize]} w-full ${TITLE_MT[cardSize]}`}>
-          <span className={`${ICON_SIZE[cardSize]} shrink-0`}>{item.icon ?? DEFAULT_ICONS[item.type] ?? "\uD83D\uDCE6"}</span>
+          <span className={`${ICON_SIZE[cardSize]} shrink-0`}>{itemIcon(item)}</span>
           <span className={`${NAME_SIZE[cardSize]} font-medium text-gray-800 dark:text-gray-200 leading-tight`}>
             {item.name}
           </span>

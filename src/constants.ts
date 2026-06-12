@@ -1,3 +1,15 @@
+import type { DashboardItem, ItemType } from "./types";
+
+export const DEFAULT_ICONS: Record<ItemType, string> = {
+  app: "🖥️",
+  url: "🌐",
+};
+
+// アイテム表示アイコンの fallback 規則の単一ソース
+export function itemIcon(item: DashboardItem): string {
+  return item.icon ?? DEFAULT_ICONS[item.type] ?? "📦";
+}
+
 export const TAG_COLORS = [
   "#EF4444", "#F97316", "#F59E0B", "#84CC16", "#10B981",
   "#14B8A6", "#06B6D4", "#3B82F6", "#6366F1", "#8B5CF6",

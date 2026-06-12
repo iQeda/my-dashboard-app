@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import type { DashboardItem, ItemType, TagDef, Category, InstalledApp } from "../types";
 import { EmojiPicker } from "./EmojiPicker";
-import { TAG_COLORS } from "../constants";
+import { TAG_COLORS, DEFAULT_ICONS } from "../constants";
+import { slugify, uniqueId, sortByLabel } from "../utils/labels";
 import { useI18n } from "../i18n";
 
 interface ItemFormModalProps {
@@ -197,12 +198,9 @@ export function ItemFormModal({
       return;
     }
 
-    let id = item?.id ?? name.toLowerCase().replace(/\s+/g, "-");
+    let id = item?.id ?? slugify(name);
     if (!item && existingItemIds) {
-      while (existingItemIds.has(id)) {
-        const match = id.match(/-(\d+)$/);
-        id = match ? id.replace(/-\d+$/, `-${Number(match[1]) + 1}`) : `${id}-2`;
-      }
+      id = uniqueId(id, existingItemIds);
     }
     const trimmedIcon = icon.trim() || undefined;
     const trimmedDesc = description.trim() || undefined;
@@ -223,13 +221,7 @@ export function ItemFormModal({
       return;
     }
     setCategoryError("");
-    let catId = label.toLowerCase().replace(/\s+/g, "-");
-    const existingIds = new Set(localCategoryList.map((c) => c.id));
-    if (existingIds.has(catId)) {
-      let suffix = 2;
-      while (existingIds.has(`${catId}-${suffix}`)) suffix++;
-      catId = `${catId}-${suffix}`;
-    }
+    const catId = uniqueId(slugify(label), new Set(localCategoryList.map((c) => c.id)));
     setLocalCategoryList((prev) => [...prev, { id: catId, label }]);
     setSelectedCategory(catId);
     setNewCategoryInput("");
@@ -256,13 +248,7 @@ export function ItemFormModal({
     }
     setTagError("");
 
-    let id = label.toLowerCase().replace(/\s+/g, "-");
-    const existingIds = new Set(localTagDefs.map((c) => c.id));
-    if (existingIds.has(id)) {
-      let suffix = 2;
-      while (existingIds.has(`${id}-${suffix}`)) suffix++;
-      id = `${id}-${suffix}`;
-    }
+    const id = uniqueId(slugify(label), new Set(localTagDefs.map((c) => c.id)));
 
     const newDef: TagDef = { id, label, color: newTagColor };
     setLocalTagDefs((prev) => [...prev, newDef]);
@@ -362,7 +348,7 @@ export function ItemFormModal({
           <div className="flex gap-2 items-center">
             <EmojiPicker
               value={icon}
-              fallback={type === "app" ? "\uD83D\uDDA5\uFE0F" : "\uD83C\uDF10"}
+              fallback={DEFAULT_ICONS[type]}
               history={emojiHistory}
               onSelect={setIcon}
               onOpenChange={setEmojiPickerOpen}
@@ -412,7 +398,7 @@ export function ItemFormModal({
             >
               {t("none")}
             </button>
-            {[...localCategoryList].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" })).map((c) => (
+            {sortByLabel(localCategoryList, (c) => c.label).map((c) => (
               <button
                 key={c.id}
                 type="button"

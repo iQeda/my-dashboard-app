@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { DashboardItem, TagDef } from "../types";
 import { ContextMenu } from "./ContextMenu";
 import { useI18n } from "../i18n";
+import { itemIcon } from "../constants";
 
 interface ItemRowProps {
   readonly item: DashboardItem;
@@ -15,11 +16,6 @@ interface ItemRowProps {
   readonly onToggleTag?: (tagId: string) => void;
   readonly isFocused?: boolean;
 }
-
-const DEFAULT_ICONS: Record<string, string> = {
-  app: "\uD83D\uDDA5\uFE0F",
-  url: "\uD83C\uDF10",
-};
 
 export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, isFocused }: ItemRowProps) {
   const { t } = useI18n();
@@ -58,7 +54,7 @@ export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, 
       </button>
 
       <button onClick={handleClick} onDoubleClick={handleDoubleClick} className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
-        <span className="text-xl shrink-0">{item.icon ?? DEFAULT_ICONS[item.type] ?? "\uD83D\uDCE6"}</span>
+        <span className="text-xl shrink-0">{itemIcon(item)}</span>
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate shrink-0">
           {item.name}
         </span>

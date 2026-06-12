@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useConfig } from "./hooks/useConfig";
 import { ConfigContext, useConfigContext } from "./hooks/configContext";
+import { groupItemsByCategory } from "./utils/groupItems";
 import { useFilter } from "./hooks/useFilter";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
 import { Sidebar } from "./components/Sidebar";
@@ -20,36 +21,6 @@ import { I18nProvider, useI18n } from "./i18n";
 import type { Locale } from "./i18n";
 import { DashboardOverview } from "./components/DashboardOverview";
 import type { DashboardItem, TagDef, Category, CardSize, ViewMode, PageView } from "./types";
-
-// Display-order items (grouped by category, matching Dashboard rendering)
-// TODO(Phase 3): src/utils/groupItems.ts へ抽出予定（テスト用に暫定 export）
-// eslint-disable-next-line react-refresh/only-export-components
-export function computeDisplayItems(
-  filteredItems: readonly DashboardItem[],
-  catList: readonly Category[],
-): readonly DashboardItem[] {
-  if (!filteredItems.some((i) => i.category)) return filteredItems;
-
-  const groups = new Map<string, DashboardItem[]>();
-  for (const item of filteredItems) {
-    const catId = item.category ?? "";
-    if (!groups.has(catId)) groups.set(catId, []);
-    groups.get(catId)!.push(item);
-  }
-
-  const result: DashboardItem[] = [];
-  for (const cat of catList) {
-    const g = groups.get(cat.id);
-    if (g) { result.push(...g); groups.delete(cat.id); }
-  }
-  const uncategorized = groups.get("");
-  if (uncategorized) result.push(...uncategorized);
-  for (const [catId, g] of groups) {
-    if (catId === "") continue;
-    result.push(...g);
-  }
-  return result;
-}
 
 export default function App() {
   // useConfig() はアプリ全体でこの1回のみ。ConfigContext 経由で共有する（Phase 2-1）
@@ -139,9 +110,9 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Compute display-order items (grouped by category, matching Dashboard rendering)
+  // Display-order items: Dashboard の描画順と同じ単一ソース（groupItemsByCategory）を平坦化
   const displayItems = useMemo(
-    () => computeDisplayItems(filteredItems, config?.categoryList ?? []),
+    () => groupItemsByCategory(filteredItems, config?.categoryList ?? []).flatMap((g) => g.items),
     [filteredItems, config?.categoryList],
   );
 
@@ -228,6 +199,21 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   const hasActiveFiltersRef = useRef(hasActiveFilters);
   hasActiveFiltersRef.current = hasActiveFilters;
 
+  // Open All の対象と起動ループの単一ソース（ボタン / ⌘O / CommandPalette 共通）
+  const openAllTargets = useMemo(
+    () => filteredItems.filter((i) => !i.excludeFromOpenAll),
+    [filteredItems],
+  );
+  // キーボードハンドラの useEffect は filteredItems を依存に持たないため、
+  // ref 経由で常に最新の対象を参照する（stale-closure 回避）
+  const openAllTargetsRef = useRef(openAllTargets);
+  openAllTargetsRef.current = openAllTargets;
+  const openAll = useCallback(async (targets: readonly DashboardItem[]) => {
+    for (const item of targets) {
+      await launchAndRecord(item);
+    }
+  }, [launchAndRecord]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Layer 0: Modal / overlay Escape handling
@@ -278,9 +264,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
         }
         if (e.key === "o" && !e.shiftKey && pageView === "items" && hasActiveFiltersRef.current) {
           e.preventDefault();
-          for (const item of filteredItems.filter((i) => !i.excludeFromOpenAll)) {
-            launchAndRecord(item);
-          }
+          openAll(openAllTargetsRef.current);
           return;
         }
         // Item operation shortcuts (items page + focused item)
@@ -341,7 +325,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showModal, showCommandPalette, showSettings, showImportNameModal, pageView, navigateTo, launchAndRecord, toggleFavorite, moveFocus]);
+  }, [showModal, showCommandPalette, showSettings, showImportNameModal, pageView, navigateTo, launchAndRecord, openAll, toggleFavorite, moveFocus]);
 
   // Scroll focused item into view
   useEffect(() => {
@@ -489,19 +473,15 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           {pageView === "items" && (
             <>
               <button
-                onClick={async () => {
-                  for (const item of filteredItems.filter((i) => !i.excludeFromOpenAll)) {
-                    await launchAndRecord(item);
-                  }
-                }}
-                disabled={filteredItems.filter((i) => !i.excludeFromOpenAll).length === 0 || !hasActiveFilters}
+                onClick={() => openAll(openAllTargets)}
+                disabled={openAllTargets.length === 0 || !hasActiveFilters}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-amber-500 hover:bg-amber-600 border-amber-500 text-white disabled:opacity-30 disabled:cursor-default"
-                title={`${t("open_all")} ${filteredItems.filter((i) => !i.excludeFromOpenAll).length}`}
+                title={`${t("open_all")} ${openAllTargets.length}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                {t("open_all")} ({filteredItems.filter((i) => !i.excludeFromOpenAll).length})
+                {t("open_all")} ({openAllTargets.length})
                 <kbd className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-white/20 border border-white/30">⌘O</kbd>
               </button>
               <button
@@ -640,7 +620,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           onToggleTag={(id) => { if (!selectedTags.has(id)) toggleTag(id); navigateTo("items"); }}
           onToggleCategory={(id) => { if (selectedCategory !== id) toggleCategory(id); navigateTo("items"); }}
           onLaunch={launchAndRecord}
-          onOpenAll={async (targets) => { for (const it of targets) await launchAndRecord(it); }}
+          onOpenAll={openAll}
           onEdit={handleEdit}
           onClose={() => setShowCommandPalette(false)}
         />

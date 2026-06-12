@@ -3,6 +3,7 @@ import type { DashboardItem, TagDef, Category, CardSize, ViewMode } from "../typ
 import { ItemCard } from "./ItemCard";
 import { ItemRow } from "./ItemRow";
 import { useI18n } from "../i18n";
+import { groupItemsByCategory } from "../utils/groupItems";
 
 interface DashboardProps {
   readonly items: readonly DashboardItem[];
@@ -40,41 +41,18 @@ interface GroupedItems {
   readonly items: readonly DashboardItem[];
 }
 
-// TODO(Phase 3): src/utils/groupItems.ts へ抽出予定（テスト用に暫定 export）
-// eslint-disable-next-line react-refresh/only-export-components
-export function useGroupedItems(items: readonly DashboardItem[], categoryList: readonly Category[], uncategorizedLabel: string): readonly GroupedItems[] {
+function useGroupedItems(items: readonly DashboardItem[], categoryList: readonly Category[], uncategorizedLabel: string): readonly GroupedItems[] {
   return useMemo(() => {
+    // 順序は groupItemsByCategory（単一ソース）に委譲し、ここではラベル解決のみ行う
     const hasAnyCategory = items.some((i) => i.category);
-    if (!hasAnyCategory) return [{ categoryId: "", label: "", items }];
-
     const catMap = new Map(categoryList.map((c) => [c.id, c.label]));
-    const groups = new Map<string, DashboardItem[]>();
-
-    for (const item of items) {
-      const catId = item.category ?? "";
-      if (!groups.has(catId)) groups.set(catId, []);
-      groups.get(catId)!.push(item);
-    }
-
-    const result: GroupedItems[] = [];
-    for (const cat of categoryList) {
-      const groupItems = groups.get(cat.id);
-      if (groupItems && groupItems.length > 0) {
-        result.push({ categoryId: cat.id, label: cat.label, items: groupItems });
-        groups.delete(cat.id);
-      }
-    }
-    const uncategorized = groups.get("");
-    if (uncategorized && uncategorized.length > 0) {
-      result.push({ categoryId: "", label: uncategorizedLabel, items: uncategorized });
-    }
-    // Any remaining unknown category ids
-    for (const [catId, groupItems] of groups) {
-      if (catId === "") continue;
-      result.push({ categoryId: catId, label: catMap.get(catId) ?? catId, items: groupItems });
-    }
-
-    return result;
+    return groupItemsByCategory(items, categoryList).map((group) => ({
+      categoryId: group.categoryId,
+      label: group.categoryId === ""
+        ? (hasAnyCategory ? uncategorizedLabel : "")
+        : catMap.get(group.categoryId) ?? group.categoryId,
+      items: group.items,
+    }));
   }, [items, categoryList, uncategorizedLabel]);
 }
 

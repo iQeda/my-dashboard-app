@@ -62,19 +62,20 @@ describe("ItemFormModal id generation (characterization)", () => {
     expect(onSave.mock.calls[0][0].id).toBe("my-cool-app");
   });
 
-  it("item id collision uses regex-increment: my-app -> my-app-2 -> my-app-3", () => {
+  it("item id collision uses while-suffix: my-app -> my-app-2 -> my-app-3", () => {
     const { onSave } = renderModal({ existingItemIds: new Set(["my-app", "my-app-2"]) });
     fillUrlItem("My App");
     save();
     expect(onSave.mock.calls[0][0].id).toBe("my-app-3");
   });
 
-  it("item id ending in a number is incremented, not suffixed (regex-increment quirk)", () => {
-    // "app 7" -> slug "app-7" collides -> regex bumps the trailing number to "app-8"
+  it("item id ending in a number gets a suffix (Phase 3 で while-suffix 方式に統一)", () => {
+    // 旧実装は regex-increment で "app-8" だったが、カテゴリ・タグと同じ
+    // while-suffix 方式（uniqueId）に統一済み
     const { onSave } = renderModal({ existingItemIds: new Set(["app-7"]) });
     fillUrlItem("App 7");
     save();
-    expect(onSave.mock.calls[0][0].id).toBe("app-8");
+    expect(onSave.mock.calls[0][0].id).toBe("app-7-2");
   });
 
   it("editing an existing item keeps its id", () => {
