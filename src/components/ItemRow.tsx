@@ -7,8 +7,8 @@ interface ItemRowProps {
   readonly tagDefs: readonly TagDef[];
   readonly onEdit: (item: DashboardItem) => void;
   readonly onToggleFavorite: (id: string) => void;
-  readonly onDuplicate: (id: string) => void;
-  readonly onDelete: (id: string) => void;
+  readonly onDuplicate?: (id: string) => void;
+  readonly onDelete?: (id: string) => void;
   readonly onLaunch: (item: DashboardItem) => void;
   readonly onSelect?: (item: DashboardItem) => void;
   readonly onToggleTag?: (tagId: string) => void;

@@ -1,18 +1,28 @@
 import { useState, useCallback, useMemo } from "react";
-import type { DashboardItem, TagDef, Category } from "../types";
-import { TAG_COLORS } from "../constants";
+import type { DashboardItem, TagDef, Category, PageView } from "../types";
+import { useConfigContext } from "../hooks/configContext";
 import { sortByLabel } from "../utils/labels";
 import { getOrderedPinnedEntries, pinnedEntryId, pinnedEntryLabel, type PinnedEntry } from "../utils/pinned";
 import { useI18n } from "../i18n";
 import { usePointerReorder } from "../hooks/usePointerReorder";
-import { MenuSurface, PinToggleMenuItem } from "./MenuSurface";
-import { FolderIcon, PencilIcon, StarIcon, TrashIcon } from "./icons";
+import { SidebarContextMenu, type CtxMenuState } from "./sidebar/SidebarContextMenu";
+import { InlineRename } from "./sidebar/InlineRename";
+import { InlineColorPicker } from "./sidebar/InlineColorPicker";
+import { InlineDeleteConfirm } from "./sidebar/InlineDeleteConfirm";
+import { SortContextMenu } from "./sidebar/SortContextMenu";
+import { FolderIcon, StarIcon } from "./icons";
+
+type EditPanelState =
+  | { readonly kind: "rename-tag"; readonly tag: TagDef }
+  | { readonly kind: "color-tag"; readonly tag: TagDef }
+  | { readonly kind: "rename-cat"; readonly cat: Category }
+  | null;
 
 interface SidebarProps {
   readonly items: readonly DashboardItem[];
   readonly tagDefs: readonly TagDef[];
   readonly categoryList: readonly Category[];
-  readonly pageView: "dashboard" | "items";
+  readonly pageView: PageView;
   readonly selectedTags: ReadonlySet<string>;
   readonly selectedCategory: string | null;
   readonly showFavoritesOnly: boolean;
@@ -21,168 +31,36 @@ interface SidebarProps {
   readonly onToggleCategory: (catId: string) => void;
   readonly onShowAllItems: () => void;
   readonly onToggleFavoritesFilter: () => void;
-  readonly onReorderTagDefs: (tagDefs: readonly TagDef[]) => void;
-  readonly onUpdateTagDef: (id: string, updates: Partial<Pick<TagDef, "label" | "color" | "pinned">>) => void;
-  readonly onDeleteTagDef: (id: string) => void;
-  readonly onUpdateCategoryDef: (id: string, updates: Partial<Pick<Category, "label" | "pinned">>) => void;
-  readonly onDeleteCategoryDef: (id: string) => void;
-  readonly onReorderCategoryList: (list: readonly Category[]) => void;
   readonly initialCategoriesOpen: boolean;
   readonly initialTagsOpen: boolean;
-  readonly onToggleSection: (prefs: { sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean }) => void;
   readonly pinnedOrder: readonly string[];
-  readonly onUpdatePinnedOrder: (order: readonly string[]) => void;
   readonly onOpenSettings: () => void;
-}
-
-// --- Right-click context menu for tags/categories ---
-
-type CtxMenuState =
-  | { kind: "tag"; tag: TagDef; x: number; y: number }
-  | { kind: "category"; cat: Category; x: number; y: number }
-  | null;
-
-type EditPanelState =
-  | { kind: "rename-tag"; tag: TagDef }
-  | { kind: "color-tag"; tag: TagDef }
-  | { kind: "rename-cat"; cat: Category }
-  | null;
-
-function SidebarContextMenu({
-  state,
-  isPinned,
-  onTogglePin,
-  onRename,
-  onChangeColor,
-  onDelete,
-  onClose,
-}: {
-  state: NonNullable<CtxMenuState>;
-  isPinned: boolean;
-  onTogglePin: () => void;
-  onRename: () => void;
-  onChangeColor?: () => void;
-  onDelete: () => void;
-  onClose: () => void;
-}) {
-  const { t } = useI18n();
-
-  const btn = "flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm transition-colors cursor-pointer";
-
-  return (
-    <MenuSurface x={state.x} y={state.y} onClose={onClose} className="w-44">
-      <PinToggleMenuItem isPinned={isPinned} onToggle={onTogglePin} onClose={onClose} />
-      <button onClick={() => { onRename(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
-        <PencilIcon className="w-4 h-4 text-gray-400" />
-        {t("rename")}
-      </button>
-      {onChangeColor && (
-        <button onClick={() => { onChangeColor(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-          {t("change_color")}
-        </button>
-      )}
-      <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
-      <button onClick={() => { onDelete(); onClose(); }} className={`${btn} text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}>
-        <TrashIcon className="w-4 h-4" />
-        {t("delete")}
-      </button>
-    </MenuSurface>
-  );
-}
-
-// --- Inline rename input ---
-function InlineRename({ value, onSave, onCancel, validate }: { value: string; onSave: (v: string) => void; onCancel: () => void; validate?: (v: string) => string | null }) {
-  const [text, setText] = useState(value);
-  const [error, setError] = useState("");
-  const trySave = () => {
-    const t = text.trim();
-    if (!t || t === value) { onCancel(); return; }
-    const err = validate?.(t);
-    if (err) { setError(err); return; }
-    onSave(t);
-  };
-  return (
-    <div className="flex flex-col gap-0.5">
-      <input
-        type="text"
-        value={text}
-        onChange={(e) => { setText(e.target.value); setError(""); }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.nativeEvent.isComposing) trySave();
-          if (e.key === "Escape") onCancel();
-        }}
-        onBlur={trySave}
-        autoFocus
-        className={`w-full px-2 py-1 rounded bg-white dark:bg-gray-700 border text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${error ? "border-red-400 dark:border-red-500" : "border-blue-300 dark:border-blue-500/40"}`}
-      />
-      {error && <span className="text-[10px] text-red-500 dark:text-red-400 px-1">{error}</span>}
-    </div>
-  );
-}
-
-// --- Inline color picker ---
-function InlineColorPicker({ current, onSelect, onClose }: { current: string; onSelect: (c: string) => void; onClose: () => void }) {
-  return (
-    <div className="px-2 py-2 rounded-md bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-500/40">
-      <div className="flex flex-wrap gap-1.5">
-        {TAG_COLORS.map((c) => (
-          <button key={c} type="button" onClick={() => { onSelect(c); onClose(); }}
-            className={`w-5 h-5 rounded-full cursor-pointer transition-transform ${current === c ? "scale-125 ring-2 ring-offset-1 ring-gray-400 dark:ring-offset-gray-800" : "hover:scale-110"}`}
-            style={{ backgroundColor: c }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// --- Delete confirmation ---
-function InlineDeleteConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
-  const { t } = useI18n();
-  return (
-    <div className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
-      <span className="flex-1 text-[11px] text-red-600 dark:text-red-400">{t("delete_confirm")}</span>
-      <button onClick={onConfirm} className="px-2 py-0.5 rounded text-[11px] font-medium text-white bg-red-500 hover:bg-red-600 transition-colors cursor-pointer">{t("yes")}</button>
-      <button onClick={onCancel} className="px-2 py-0.5 rounded text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">{t("no")}</button>
-    </div>
-  );
-}
-
-// --- Sort context menu for headings ---
-function SortContextMenu({ x, y, onSortAsc, onSortDesc, onClose }: {
-  x: number; y: number;
-  onSortAsc: () => void; onSortDesc: () => void; onClose: () => void;
-}) {
-  const { t } = useI18n();
-
-  const btn = "flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer";
-
-  return (
-    <MenuSurface x={x} y={y} onClose={onClose} className="w-40">
-      <button onClick={onSortAsc} className={btn}>
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h5m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
-        {t("sort_asc_name")}
-      </button>
-      <button onClick={onSortDesc} className={btn}>
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h5m4 0l4 4m0 0l4-4m-4 4V4" /></svg>
-        {t("sort_desc_name")}
-      </button>
-    </MenuSurface>
-  );
 }
 
 // --- Main Sidebar ---
 export function Sidebar({
   items, tagDefs, categoryList, pageView, selectedTags, selectedCategory, showFavoritesOnly,
   onGoToDashboard, onToggleTag, onToggleCategory, onShowAllItems, onToggleFavoritesFilter,
-  onReorderTagDefs, onUpdateTagDef, onDeleteTagDef,
-  onUpdateCategoryDef, onDeleteCategoryDef, onReorderCategoryList,
-  initialCategoriesOpen, initialTagsOpen, onToggleSection,
-  pinnedOrder, onUpdatePinnedOrder,
+  initialCategoriesOpen, initialTagsOpen,
+  pinnedOrder,
   onOpenSettings,
 }: SidebarProps) {
   const { t } = useI18n();
+  // config 系の操作は ConfigContext から直接読む（App からの素通し props を廃止）
+  const {
+    reorderTagDefs: onReorderTagDefs,
+    updateTagDef: onUpdateTagDef,
+    deleteTagDef: onDeleteTagDef,
+    updateCategoryDef: onUpdateCategoryDef,
+    deleteCategoryDef: onDeleteCategoryDef,
+    reorderCategoryList: onReorderCategoryList,
+    updateViewPrefs,
+  } = useConfigContext();
+  const onToggleSection = updateViewPrefs;
+  const onUpdatePinnedOrder = useCallback(
+    (order: readonly string[]) => updateViewPrefs({ pinnedOrder: order }),
+    [updateViewPrefs],
+  );
 
   const catCounts = useMemo(() => {
     const counts = new Map<string, number>();
