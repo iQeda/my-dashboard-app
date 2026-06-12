@@ -24,8 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # デザインソース (*.pen) とドキュメント (*.md) は公開しない
+      - name: Stage public files
+        run: |
+          mkdir -p _site
+          rsync -a --exclude='*.pen' --exclude='*.md' lp/ _site/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: lp
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

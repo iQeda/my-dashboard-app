@@ -30,11 +30,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "^2"
-
+      # tauri-cli のソースビルド（毎回数分 + 非再現的）を避け、
+      # devDependency の @tauri-apps/cli を使う
       - name: Build Tauri app
-        run: cargo tauri build
+        run: pnpm tauri build
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}

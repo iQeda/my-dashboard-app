@@ -27,7 +27,8 @@ const translations = {
   "all_items": { en: "All Items", ja: "すべてのアイテム" },
   "favorites": { en: "Favorites", ja: "お気に入り" },
   "categories": { en: "Categories", ja: "カテゴリ" },
-  "tags": { en: "Workspaces", ja: "ワークスペース" },
+  "workspaces": { en: "Workspaces", ja: "ワークスペース" },
+  "workspace": { en: "Workspace", ja: "ワークスペース" },
   "multi": { en: "Multi Workspace (AND)", ja: "複数ワークスペース (AND)" },
   "settings": { en: "Settings", ja: "設定" },
 
@@ -46,7 +47,7 @@ const translations = {
   "url_placeholder": { en: "e.g. https://example.com", ja: "例: https://example.com" },
   "name_placeholder": { en: "e.g. GitHub Reviews", ja: "例: GitHub Reviews" },
   "optional_description": { en: "Optional description", ja: "説明（任意）" },
-  "new_tag_name": { en: "New workspace name", ja: "新しいワークスペース名" },
+  "new_workspace_name": { en: "New workspace name", ja: "新しいワークスペース名" },
   "new_category": { en: "New category", ja: "新しいカテゴリ" },
   "duplicate_category": { en: "Category already exists", ja: "同名のカテゴリが既に存在します" },
   "duplicate_workspace": { en: "Workspace already exists", ja: "同名のワークスペースが既に存在します" },
@@ -57,7 +58,7 @@ const translations = {
 
   // Search
   "search_placeholder": { en: "Search... (⌘K)", ja: "検索... (⌘K)" },
-  "search_items_tags": { en: "Search items and workspaces...", ja: "アイテムとワークスペースを検索..." },
+  "search_items_workspaces": { en: "Search items and workspaces...", ja: "アイテムとワークスペースを検索..." },
 
   // Sort / Filter
   "sort_asc_name": { en: "Sort A → Z", ja: "昇順ソート" },
@@ -65,6 +66,11 @@ const translations = {
   "type_all": { en: "All", ja: "すべて" },
   "clear_all": { en: "Clear All", ja: "すべて解除" },
   "combined_filter": { en: "Category + Workspace", ja: "カテゴリ + ワークスペース" },
+  "combined_filter_on": { en: "Category + Workspace combined filter ON", ja: "カテゴリ + ワークスペース結合フィルター ON" },
+  "combined_filter_off": { en: "Category + Workspace combined filter OFF", ja: "カテゴリ + ワークスペース結合フィルター OFF" },
+  "multi_on": { en: "Multi-select ON (AND)", ja: "複数選択 ON (AND)" },
+  "multi_off": { en: "Multi-select OFF", ja: "複数選択 OFF" },
+  "right_click_to_sort": { en: "Right-click to sort", ja: "右クリックでソート" },
   "open_all": { en: "Open All", ja: "すべて開く" },
   "navigate": { en: "Navigate", ja: "移動" },
   "select": { en: "Select", ja: "選択" },

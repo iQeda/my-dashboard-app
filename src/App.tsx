@@ -29,7 +29,7 @@ import type { DashboardItem, TagDef, Category } from "./types";
 import { BoltIcon } from "./components/icons";
 import { ImportNameModal } from "./components/ImportNameModal";
 
-export default function App() {
+export function App() {
   // useConfig() はアプリ全体でこの1回のみ。ConfigContext 経由で共有する（Phase 2-1）
   const store = useConfig();
   const { config, loading, error, updateLocale } = store;

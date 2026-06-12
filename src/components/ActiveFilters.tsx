@@ -62,7 +62,7 @@ export function ActiveFilters({
             ? "bg-blue-500 text-white border-blue-500"
             : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 hover:border-gray-400"
         }`}
-        title={combinedFilter ? "Category + Tag combined filter ON" : "Category + Tag combined filter OFF"}
+        title={combinedFilter ? t("combined_filter_on") : t("combined_filter_off")}
       >
         {t("combined_filter")}
       </button>
@@ -73,7 +73,7 @@ export function ActiveFilters({
             ? "bg-blue-500 text-white border-blue-500"
             : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 hover:border-gray-400"
         }`}
-        title={multiTagMode ? "Multi-select ON (AND)" : "Multi-select OFF"}
+        title={multiTagMode ? t("multi_on") : t("multi_off")}
       >
         {t("multi")}
       </button>

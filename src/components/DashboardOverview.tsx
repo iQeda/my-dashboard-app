@@ -163,7 +163,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
       {/* Tags */}
       <section>
         <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
-          {t("tags")}
+          {t("workspaces")}
         </h2>
         <div className="flex flex-wrap gap-3">
           {tagGroups.map(({ tag, count }) => (

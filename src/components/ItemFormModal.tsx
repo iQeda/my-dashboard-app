@@ -328,7 +328,7 @@ export function ItemFormModal({
         </fieldset>
 
         <fieldset className="flex flex-col gap-3">
-          <legend className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("tags")}</legend>
+          <legend className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("workspaces")}</legend>
           <div className="flex flex-wrap gap-2 mt-1">
             {localTagDefs.map((cat) => (
               <button
@@ -373,7 +373,7 @@ export function ItemFormModal({
               value={newTagInput}
               onChange={(e) => { setNewTagInput(e.target.value); setTagError(""); }}
               onKeyDown={handleTagKeyDown}
-              placeholder={t("new_tag_name")}
+              placeholder={t("new_workspace_name")}
               className={`flex-1 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 border text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${tagError ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-600"}`}
             />
             <button
