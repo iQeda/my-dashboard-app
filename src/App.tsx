@@ -73,12 +73,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     deleteItem,
     duplicateItem,
     toggleFavorite,
-    reorderTagDefs,
     updateTagDef,
-    deleteTagDef,
     updateCategoryDef,
-    deleteCategoryDef,
-    reorderCategoryList,
     updateViewPrefs,
     recordAccess,
     updateGlobalShortcut,
@@ -162,6 +158,17 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   // ref 経由で常に最新の対象を参照する（stale-closure 回避）
   const openAllTargetsRef = useRef(openAllTargets);
   openAllTargetsRef.current = openAllTargets;
+
+  // 「フィルタ操作 + items ページへ遷移」の定型 closure を集約（Sidebar / Dashboard / CommandPalette 共用）
+  const goToDashboard = useCallback(() => navigateTo("dashboard"), [navigateTo]);
+  const openSettings = useCallback(() => setShowSettings(true), []);
+  const toggleTagAndGo = useCallback((id: string) => { toggleTag(id); navigateTo("items"); }, [toggleTag, navigateTo]);
+  const toggleCategoryAndGo = useCallback((id: string) => { toggleCategory(id); navigateTo("items"); }, [toggleCategory, navigateTo]);
+  const showAllItemsAndGo = useCallback(() => { showAllItems(); navigateTo("items"); }, [showAllItems, navigateTo]);
+  const toggleFavoritesAndGo = useCallback(() => { toggleFavoritesFilter(); navigateTo("items"); }, [toggleFavoritesFilter, navigateTo]);
+  // CommandPalette からの選択は「既に選択中なら解除しない」（再選択でトグルさせない）
+  const paletteToggleTag = useCallback((id: string) => { if (!selectedTags.has(id)) toggleTag(id); navigateTo("items"); }, [selectedTags, toggleTag, navigateTo]);
+  const paletteToggleCategory = useCallback((id: string) => { if (selectedCategory !== id) toggleCategory(id); navigateTo("items"); }, [selectedCategory, toggleCategory, navigateTo]);
 
   useAppShortcuts({
     showModal,
@@ -287,23 +294,15 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           selectedTags={selectedTags}
           selectedCategory={selectedCategory}
           showFavoritesOnly={showFavoritesOnly}
-          onGoToDashboard={() => navigateTo("dashboard")}
-          onToggleTag={(id) => { toggleTag(id); navigateTo("items"); }}
-          onToggleCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
-          onShowAllItems={() => { showAllItems(); navigateTo("items"); }}
-          onToggleFavoritesFilter={() => { toggleFavoritesFilter(); navigateTo("items"); }}
-          onReorderTagDefs={reorderTagDefs}
-          onUpdateTagDef={updateTagDef}
-          onDeleteTagDef={deleteTagDef}
-          onUpdateCategoryDef={updateCategoryDef}
-          onDeleteCategoryDef={deleteCategoryDef}
-          onReorderCategoryList={reorderCategoryList}
+          onGoToDashboard={goToDashboard}
+          onToggleTag={toggleTagAndGo}
+          onToggleCategory={toggleCategoryAndGo}
+          onShowAllItems={showAllItemsAndGo}
+          onToggleFavoritesFilter={toggleFavoritesAndGo}
           initialCategoriesOpen={config.sidebarCategoriesOpen ?? true}
           initialTagsOpen={config.sidebarTagsOpen ?? true}
-          onToggleSection={updateViewPrefs}
           pinnedOrder={config.pinnedOrder ?? []}
-          onUpdatePinnedOrder={(order) => updateViewPrefs({ pinnedOrder: order })}
-          onOpenSettings={() => setShowSettings(true)}
+          onOpenSettings={openSettings}
         />
         <div
           onPointerDown={onResizeStart}
@@ -360,10 +359,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             tagDefs={config.tagDefs}
             categoryList={config.categoryList ?? []}
             recentAccess={config.recentAccess ?? []}
-            onSelectTag={(id) => { toggleTag(id); navigateTo("items"); }}
-            onSelectCategory={(id) => { toggleCategory(id); navigateTo("items"); }}
-            onSelectFavorites={() => { toggleFavoritesFilter(); navigateTo("items"); }}
-            onLaunchItem={launchAndRecord}
+            onToggleTag={toggleTagAndGo}
+            onToggleCategory={toggleCategoryAndGo}
+            onSelectFavorites={toggleFavoritesAndGo}
+            onLaunch={launchAndRecord}
             onEdit={handleEdit}
             onToggleFavorite={toggleFavorite}
             onToggleCategoryPin={(id) => { const cat = (config.categoryList ?? []).find((c) => c.id === id); if (cat) updateCategoryDef(id, { pinned: !cat.pinned }); }}
@@ -460,8 +459,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           tagDefs={config.tagDefs}
           categoryList={config.categoryList ?? []}
           recentAccess={config.recentAccess ?? []}
-          onToggleTag={(id) => { if (!selectedTags.has(id)) toggleTag(id); navigateTo("items"); }}
-          onToggleCategory={(id) => { if (selectedCategory !== id) toggleCategory(id); navigateTo("items"); }}
+          onToggleTag={paletteToggleTag}
+          onToggleCategory={paletteToggleCategory}
           onLaunch={launchAndRecord}
           onOpenAll={openAll}
           onEdit={handleEdit}

@@ -13,10 +13,10 @@ interface DashboardOverviewProps {
   readonly tagDefs: readonly TagDef[];
   readonly categoryList: readonly Category[];
   readonly recentAccess: readonly RecentAccessEntry[];
-  readonly onSelectTag: (tagId: string) => void;
-  readonly onSelectCategory: (catId: string) => void;
+  readonly onToggleTag: (tagId: string) => void;
+  readonly onToggleCategory: (catId: string) => void;
   readonly onSelectFavorites: () => void;
-  readonly onLaunchItem: (item: DashboardItem) => void;
+  readonly onLaunch: (item: DashboardItem) => void;
   readonly onEdit: (item: DashboardItem) => void;
   readonly onToggleFavorite: (id: string) => void;
   readonly onToggleCategoryPin?: (id: string) => void;
@@ -34,7 +34,7 @@ function PinContextMenu({ state, onToggle, onClose }: { readonly state: NonNulla
   );
 }
 
-export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, onSelectTag, onSelectCategory, onSelectFavorites, onLaunchItem, onEdit, onToggleFavorite, onToggleCategoryPin, onToggleTagPin, pinnedOrder = [] }: DashboardOverviewProps) {
+export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, onToggleTag, onToggleCategory, onSelectFavorites, onLaunch, onEdit, onToggleFavorite, onToggleCategoryPin, onToggleTagPin, pinnedOrder = [] }: DashboardOverviewProps) {
   const { t } = useI18n();
 
   const unpinnedCategories = categoryList.filter((c) => !c.pinned);
@@ -85,8 +85,8 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 cardSize="sm"
                 onEdit={onEdit}
                 onToggleFavorite={onToggleFavorite}
-                onLaunch={onLaunchItem}
-                onToggleTag={onSelectTag}
+                onLaunch={onLaunch}
+                onToggleTag={onToggleTag}
               />
             ))}
           </div>
@@ -107,7 +107,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 if (entry.kind === "category") {
                   const count = items.filter((i) => i.category === entry.cat.id).length;
                   return (
-                    <CategoryTagCard key={entry.cat.id} onClick={() => onSelectCategory(entry.cat.id)}
+                    <CategoryTagCard key={entry.cat.id} onClick={() => onToggleCategory(entry.cat.id)}
                       onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: entry.cat.id, pinned: true, x: e.clientX, y: e.clientY }); }}
                       icon={<FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />}
                       label={entry.cat.label} count={count} />
@@ -115,7 +115,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 }
                 const count = items.filter((i) => i.tags.includes(entry.tag.id)).length;
                 return (
-                  <CategoryTagCard key={entry.tag.id} onClick={() => onSelectTag(entry.tag.id)}
+                  <CategoryTagCard key={entry.tag.id} onClick={() => onToggleTag(entry.tag.id)}
                     onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "tag", id: entry.tag.id, pinned: true, x: e.clientX, y: e.clientY }); }}
                     icon={<span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: entry.tag.color }} />}
                     label={entry.tag.label} count={count} />
@@ -136,7 +136,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
             {categorizedGroups.map(({ category, count }) => (
               <CategoryTagCard
                 key={category.id}
-                onClick={() => onSelectCategory(category.id)}
+                onClick={() => onToggleCategory(category.id)}
                 onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: category.id, pinned: false, x: e.clientX, y: e.clientY }); }}
                 icon={<FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />}
                 label={category.label}
@@ -146,7 +146,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
 
             {uncategorizedCount > 0 && (
               <CategoryTagCard
-                onClick={() => onSelectCategory("")}
+                onClick={() => onToggleCategory("")}
                 icon={
                   <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
@@ -169,7 +169,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
           {tagGroups.map(({ tag, count }) => (
             <CategoryTagCard
               key={tag.id}
-              onClick={() => onSelectTag(tag.id)}
+              onClick={() => onToggleTag(tag.id)}
               onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "tag", id: tag.id, pinned: false, x: e.clientX, y: e.clientY }); }}
               icon={<span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />}
               label={tag.label}
@@ -194,8 +194,8 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 cardSize="sm"
                 onEdit={onEdit}
                 onToggleFavorite={onToggleFavorite}
-                onLaunch={onLaunchItem}
-                onToggleTag={onSelectTag}
+                onLaunch={onLaunch}
+                onToggleTag={onToggleTag}
               />
             ))}
           </div>
