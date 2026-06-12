@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { useI18n } from "../i18n";
+import { ModalShell } from "./ModalShell";
+import { useUpdater } from "../hooks/useUpdater";
 import type { Locale } from "../i18n";
 
 interface SettingsModalProps {
@@ -24,9 +24,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
   const [configPath, setConfigPath] = useState("");
   const [recording, setRecording] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "downloading" | "installing" | "failed">("idle");
-  const [latestVersion, setLatestVersion] = useState("");
-  const updateRef = useRef<Awaited<ReturnType<typeof check>> | null>(null);
+  const { status: updateStatus, version: latestVersion, checkForUpdate, downloadAndInstall } = useUpdater();
 
   const keysPressed = useRef(new Set<string>());
 
@@ -96,12 +94,8 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
   }, []);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-    >
+    <ModalShell onClose={onClose}>
       <div
-        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-2xl mx-6 p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-5 max-h-[90vh] overflow-y-scroll overscroll-contain"
       >
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
@@ -265,21 +259,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
               MyDashboard v{appVersion}
             </p>
             <button
-              onClick={async () => {
-                setUpdateStatus("checking");
-                try {
-                  const update = await check();
-                  updateRef.current = update;
-                  if (update) {
-                    setLatestVersion(update.version);
-                    setUpdateStatus("available");
-                    return;
-                  }
-                  setUpdateStatus("up-to-date");
-                } catch {
-                  setUpdateStatus("failed");
-                }
-              }}
+              onClick={() => checkForUpdate()}
               disabled={updateStatus === "checking" || updateStatus === "downloading" || updateStatus === "installing"}
               className="px-2 py-1 rounded text-[11px] font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 transition-colors cursor-pointer"
             >
@@ -293,18 +273,7 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
             <div className="flex items-center gap-2">
               <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">{t("update_available")}: v{latestVersion}</p>
               <button
-                onClick={async () => {
-                  const update = updateRef.current;
-                  if (!update) return;
-                  try {
-                    setUpdateStatus("downloading");
-                    await update.downloadAndInstall();
-                    setUpdateStatus("installing");
-                    await relaunch();
-                  } catch {
-                    setUpdateStatus("failed");
-                  }
-                }}
+                onClick={() => downloadAndInstall()}
                 className="px-2 py-1 rounded text-[11px] font-bold text-white bg-blue-500 hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 {t("update_now")}
@@ -331,6 +300,6 @@ export function SettingsModal({ locale, globalShortcut, onChangeLocale, onChange
           </button>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

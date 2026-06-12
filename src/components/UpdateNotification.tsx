@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
+import { useState, useEffect } from "react";
 import { useI18n } from "../i18n";
+import { useUpdater } from "../hooks/useUpdater";
 import { XIcon } from "./icons";
 
 interface UpdateNotificationProps {
@@ -11,40 +10,21 @@ interface UpdateNotificationProps {
 
 export function UpdateNotification({ dismissedVersion, onDismiss }: UpdateNotificationProps) {
   const { t } = useI18n();
-  const [version, setVersion] = useState("");
-  const [status, setStatus] = useState<"idle" | "available" | "downloading" | "installing" | "dismissed">("idle");
-  const updateRef = useRef<Awaited<ReturnType<typeof check>> | null>(null);
+  const { status, version, checkForUpdate, downloadAndInstall } = useUpdater();
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      try {
-        const update = await check();
-        if (update && update.version !== dismissedVersion) {
-          updateRef.current = update;
-          setVersion(update.version);
-          setStatus("available");
-        }
-      } catch {
-        // silently ignore
-      }
+    const timer = setTimeout(() => {
+      // 起動直後の通知は静かに失敗し、dismiss 済みバージョンは無視する
+      checkForUpdate({ silent: true, skipVersion: dismissedVersion });
     }, 3000);
     return () => clearTimeout(timer);
-  }, [dismissedVersion]);
+  }, [dismissedVersion, checkForUpdate]);
 
-  const handleUpdate = async () => {
-    const update = updateRef.current;
-    if (!update) return;
-    try {
-      setStatus("downloading");
-      await update.downloadAndInstall();
-      setStatus("installing");
-      await relaunch();
-    } catch {
-      setStatus("available");
-    }
-  };
+  // 失敗時は「Update Now」をやり直せるよう available に戻す
+  const handleUpdate = () => downloadAndInstall({ onFailStatus: "available" });
 
-  if (status === "idle" || status === "dismissed") return null;
+  if (status === "idle" || dismissed) return null;
 
   return (
     <div className="fixed bottom-14 right-4 z-40 w-72 rounded-xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 p-4 flex flex-col gap-3 animate-slide-up">
@@ -53,7 +33,7 @@ export function UpdateNotification({ dismissedVersion, onDismiss }: UpdateNotifi
           {t("update_available")}
         </span>
         <button
-          onClick={() => { onDismiss(version); setStatus("dismissed"); }}
+          onClick={() => { onDismiss(version); setDismissed(true); }}
           className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
         >
           <XIcon className="w-4 h-4" />

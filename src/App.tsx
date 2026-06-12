@@ -22,6 +22,7 @@ import type { Locale } from "./i18n";
 import { DashboardOverview } from "./components/DashboardOverview";
 import type { DashboardItem, TagDef, Category, CardSize, ViewMode, PageView } from "./types";
 import { BoltIcon } from "./components/icons";
+import { ModalShell } from "./components/ModalShell";
 
 export default function App() {
   // useConfig() はアプリ全体でこの1回のみ。ConfigContext 経由で共有する（Phase 2-1）
@@ -590,8 +591,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       )}
 
       {showImportNameModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowImportNameModal(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm mx-4 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-4">
+        <ModalShell onClose={() => setShowImportNameModal(false)} zClassName="z-[60]">
+          <div className="w-full max-w-sm mx-4 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-4">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t("save_as_profile")}</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">{t("import_profile_desc")}</p>
             <input
@@ -607,7 +608,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
               <button onClick={confirmImport} disabled={!importProfileName.trim()} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-30 transition-colors cursor-pointer">{t("save")}</button>
             </div>
           </div>
-        </div>
+        </ModalShell>
       )}
 
       {showCommandPalette && config && (
