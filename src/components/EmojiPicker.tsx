@@ -158,7 +158,7 @@ export function EmojiPicker({ value, fallback, history = [], onSelect, onOpenCha
       const q = search.toLowerCase();
       const matched = ALL_ENTRIES.filter((e) => e.keywords.includes(q));
       return matched.length > 0
-        ? [{ key: "search", label: t("no_results"), emojis: matched }]
+        ? [{ key: "search", label: "", emojis: matched }]
         : [];
     }
     if (activeGroup === HISTORY_KEY) {

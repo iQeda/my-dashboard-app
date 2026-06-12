@@ -276,23 +276,10 @@ export function useConfig() {
   );
 
   const updateViewPrefs = useCallback(
-    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean; pinnedOrder?: readonly string[]; hiddenProfiles?: readonly string[]; dismissedUpdateVersion?: string }) => {
+    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean; pinnedOrder?: readonly string[]; dismissedUpdateVersion?: string }) => {
       const current = configRef.current;
       if (!current) return;
       const newConfig: AppConfig = { ...current, ...prefs };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
-  );
-
-  const addEmojiToHistory = useCallback(
-    async (emoji: string) => {
-      const current = configRef.current;
-      if (!current || !emoji) return;
-      const prev = current.emojiHistory ?? [];
-      const filtered = prev.filter((e) => e !== emoji);
-      const next = [emoji, ...filtered].slice(0, 20);
-      const newConfig: AppConfig = { ...current, emojiHistory: next };
       await saveConfig(newConfig);
     },
     [saveConfig],
@@ -348,7 +335,6 @@ export function useConfig() {
     reorderCategoryList,
     updateLocale,
     updateViewPrefs,
-    addEmojiToHistory,
     recordAccess,
     updateGlobalShortcut,
     exportConfig,

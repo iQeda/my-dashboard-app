@@ -439,7 +439,6 @@ export function Sidebar({
         <>
           <div className="border-t border-gray-200 dark:border-white/10 my-1" />
           <button
-            onClick={() => {}}
             onContextMenu={(e) => { e.preventDefault(); setSortMenu({ kind: "pinned", x: e.clientX, y: e.clientY }); }}
             className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-default hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors"
             title="Right-click to sort"
