@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { DashboardItem, TagDef, CardSize } from "../types";
 import { itemIcon } from "../constants";
 import { FavoriteStarButton, EditIconButton, TagBadges, ItemTypeBadge, useItemCtxMenu } from "./item-parts";
@@ -46,7 +47,7 @@ const TITLE_MT: Record<CardSize, string> = {
   lg: "mt-2",
 };
 
-export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, isFocused }: ItemCardProps) {
+export const ItemCard = memo(function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, isFocused }: ItemCardProps) {
   const { onContextMenu, menu } = useItemCtxMenu(item, { onEdit, onToggleFavorite, onDuplicate, onDelete });
 
   const handleClick = () => { onSelect?.(item); };
@@ -90,4 +91,4 @@ export function ItemCard({ item, tagDefs, cardSize, onEdit, onToggleFavorite, on
       {menu}
     </div>
   );
-}
+});

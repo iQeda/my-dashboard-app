@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { DashboardItem, TagDef } from "../types";
 import { itemIcon } from "../constants";
 import { FavoriteStarButton, EditIconButton, TagBadges, ItemTypeBadge, useItemCtxMenu } from "./item-parts";
@@ -15,7 +16,7 @@ interface ItemRowProps {
   readonly isFocused?: boolean;
 }
 
-export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, isFocused }: ItemRowProps) {
+export const ItemRow = memo(function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, onDelete, onLaunch, onSelect, onToggleTag, isFocused }: ItemRowProps) {
   const { onContextMenu, menu } = useItemCtxMenu(item, { onEdit, onToggleFavorite, onDuplicate, onDelete });
 
   const handleClick = () => { onSelect?.(item); };
@@ -48,4 +49,4 @@ export function ItemRow({ item, tagDefs, onEdit, onToggleFavorite, onDuplicate, 
       {menu}
     </div>
   );
-}
+});
