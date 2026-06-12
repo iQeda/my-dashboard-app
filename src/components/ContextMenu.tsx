@@ -1,7 +1,6 @@
-import { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import type { DashboardItem } from "../types";
 import { useI18n } from "../i18n";
+import { MenuSurface } from "./MenuSurface";
 
 interface ContextMenuProps {
   readonly item: DashboardItem;
@@ -16,46 +15,11 @@ interface ContextMenuProps {
 
 export function ContextMenu({ item, x, y, onEdit, onDuplicate, onToggleFavorite, onDelete, onClose }: ContextMenuProps) {
   const { t } = useI18n();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [onClose]);
-
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handle);
-    return () => document.removeEventListener("keydown", handle);
-  }, [onClose]);
-
-  // Adjust position to stay within viewport
-  useEffect(() => {
-    if (!menuRef.current) return;
-    const rect = menuRef.current.getBoundingClientRect();
-    if (rect.right > window.innerWidth) {
-      menuRef.current.style.left = `${x - rect.width}px`;
-    }
-    if (rect.bottom > window.innerHeight) {
-      menuRef.current.style.top = `${y - rect.height}px`;
-    }
-  }, [x, y]);
 
   const btnClass = "flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm transition-colors cursor-pointer";
 
-  return createPortal(
-    <div
-      ref={menuRef}
-      style={{ position: "fixed", top: y, left: x }}
-      className="z-[100] w-48 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-xl"
-    >
+  return (
+    <MenuSurface x={x} y={y} onClose={onClose} className="w-48">
       <button
         onClick={() => { onEdit(); onClose(); }}
         className={`${btnClass} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}
@@ -102,7 +66,6 @@ export function ContextMenu({ item, x, y, onEdit, onDuplicate, onToggleFavorite,
           </button>
         </>
       )}
-    </div>,
-    document.body,
+    </MenuSurface>
   );
 }

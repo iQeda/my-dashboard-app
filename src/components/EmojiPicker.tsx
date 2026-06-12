@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import emojiData from "emojibase-data/en/data.json";
 import emojiMessages from "emojibase-data/en/messages.json";
 import { useI18n } from "../i18n";
+import { useDismiss } from "../hooks/useDismiss";
 
 interface EmojiEntry {
   readonly emoji: string;
@@ -133,20 +134,10 @@ export function EmojiPicker({ value, fallback, history = [], onSelect, onOpenCha
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    updatePos();
-    const onClickOutside = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (
-        btnRef.current && !btnRef.current.contains(t) &&
-        panelRef.current && !panelRef.current.contains(t)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [open, updatePos, setOpen]);
+    if (open) updatePos();
+  }, [open, updatePos]);
+  // Escape はモーダル親と onOpenChange プロトコルで協調するため useDismiss では扱わない（SKILL.md #5）
+  useDismiss([btnRef, panelRef], () => setOpen(false), { enabled: open, escape: false });
 
   const historyEntries = useMemo<readonly EmojiEntry[]>(() =>
     history.map((emoji) => ALL_ENTRIES.find((e) => e.emoji === emoji) ?? { emoji, keywords: "" }),
