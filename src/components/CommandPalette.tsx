@@ -3,6 +3,7 @@ import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../type
 import { useI18n } from "../i18n";
 import { itemIcon } from "../constants";
 import { resolveRecentItems } from "../utils/recent";
+import { ModalShell } from "./ModalShell";
 import { BoltIcon, FolderIcon, PencilIcon } from "./icons";
 
 interface CommandPaletteProps {
@@ -34,6 +35,47 @@ function getOpenAllTargets(result: Result, items: readonly DashboardItem[]): rea
     return items.filter((it) => it.tags.includes(result.data.id) && !it.excludeFromOpenAll);
   }
   return [];
+}
+
+// カテゴリ行 / タグ（Workspace）行の共通レイアウト（約35行x2 の重複を統合）
+function PaletteGroupRow({ icon, label, badge, isSelected, targets, openAllTitle, onHover, onExecute, onOpenAll }: {
+  readonly icon: React.ReactNode;
+  readonly label: string;
+  readonly badge: string;
+  readonly isSelected: boolean;
+  readonly targets: readonly DashboardItem[];
+  readonly openAllTitle: string;
+  readonly onHover: () => void;
+  readonly onExecute: () => void;
+  readonly onOpenAll: () => void;
+}) {
+  return (
+    <div
+      onMouseEnter={onHover}
+      className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors ${
+        isSelected ? "bg-blue-50 dark:bg-blue-900/30" : ""
+      }`}
+    >
+      <button
+        onClick={onExecute}
+        className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
+      >
+        {icon}
+        <span className="flex-1 text-gray-800 dark:text-gray-200">{label}</span>
+        <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">{badge}</span>
+      </button>
+      {targets.length > 0 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenAll(); }}
+          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer shrink-0"
+          title={openAllTitle}
+        >
+          <BoltIcon className="w-3 h-3" />
+          {targets.length}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onToggleTag, onToggleCategory, onLaunch, onOpenAll, onEdit, onClose }: CommandPaletteProps) {
@@ -141,12 +183,8 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
   }, [selectedIndex]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-    >
+    <ModalShell onClose={onClose} positionClassName="items-start justify-center pt-[15vh]">
       <div
-        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-lg mx-4 rounded-xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col overflow-hidden"
       >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
@@ -198,67 +236,36 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
               const cat = result.data;
               const targets = getOpenAllTargets(result, items);
               return (
-                <div
+                <PaletteGroupRow
                   key={`cat-${cat.id}`}
-                  onMouseEnter={() => setSelectedIndex(i)}
-                  className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors ${
-                    isSelected ? "bg-blue-50 dark:bg-blue-900/30" : ""
-                  }`}
-                >
-                  <button
-                    onClick={() => executeResult(result)}
-                    className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
-                  >
-                    <FolderIcon className="w-3 h-3 shrink-0 text-purple-500" />
-                    <span className="flex-1 text-gray-800 dark:text-gray-200">{cat.label}</span>
-                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">{t("category")}</span>
-                  </button>
-                  {targets.length > 0 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onOpenAll(targets); onClose(); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer shrink-0"
-                      title={`${t("open_all")} (${targets.length})`}
-                    >
-                      <BoltIcon className="w-3 h-3" />
-                      {targets.length}
-                    </button>
-                  )}
-                </div>
+                  icon={<FolderIcon className="w-3 h-3 shrink-0 text-purple-500" />}
+                  label={cat.label}
+                  badge={t("category")}
+                  isSelected={isSelected}
+                  targets={targets}
+                  openAllTitle={`${t("open_all")} (${targets.length})`}
+                  onHover={() => setSelectedIndex(i)}
+                  onExecute={() => executeResult(result)}
+                  onOpenAll={() => { onOpenAll(targets); onClose(); }}
+                />
               );
             }
             if (result.kind === "tag") {
               const cat = result.data;
               const targets = getOpenAllTargets(result, items);
               return (
-                <div
+                <PaletteGroupRow
                   key={`tag-${cat.id}`}
-                  onMouseEnter={() => setSelectedIndex(i)}
-                  className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors ${
-                    isSelected ? "bg-blue-50 dark:bg-blue-900/30" : ""
-                  }`}
-                >
-                  <button
-                    onClick={() => executeResult(result)}
-                    className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
-                  >
-                    <span
-                      className="w-3 h-3 rounded-full shrink-0"
-                      style={{ backgroundColor: cat.color }}
-                    />
-                    <span className="flex-1 text-gray-800 dark:text-gray-200">{cat.label}</span>
-                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">Workspace</span>
-                  </button>
-                  {targets.length > 0 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onOpenAll(targets); onClose(); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer shrink-0"
-                      title={`${t("open_all")} (${targets.length})`}
-                    >
-                      <BoltIcon className="w-3 h-3" />
-                      {targets.length}
-                    </button>
-                  )}
-                </div>
+                  icon={<span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />}
+                  label={cat.label}
+                  badge="Workspace"
+                  isSelected={isSelected}
+                  targets={targets}
+                  openAllTitle={`${t("open_all")} (${targets.length})`}
+                  onHover={() => setSelectedIndex(i)}
+                  onExecute={() => executeResult(result)}
+                  onOpenAll={() => { onOpenAll(targets); onClose(); }}
+                />
               );
             }
             const item = result.data;
@@ -312,6 +319,6 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
           </span>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

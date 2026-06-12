@@ -3,7 +3,8 @@ import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../type
 import { ItemCard } from "./ItemCard";
 import { useI18n } from "../i18n";
 import { getOrderedPinnedEntries } from "../utils/pinned";
-import { MenuSurface } from "./MenuSurface";
+import { MenuSurface, PinToggleMenuItem } from "./MenuSurface";
+import { CategoryTagCard } from "./CategoryTagCard";
 import { resolveRecentItems } from "../utils/recent";
 import { FolderIcon } from "./icons";
 
@@ -26,18 +27,9 @@ interface DashboardOverviewProps {
 type PinMenuState = { readonly kind: "category" | "tag"; readonly id: string; readonly pinned: boolean; readonly x: number; readonly y: number } | null;
 
 function PinContextMenu({ state, onToggle, onClose }: { readonly state: NonNullable<PinMenuState>; readonly onToggle: () => void; readonly onClose: () => void }) {
-  const { t } = useI18n();
-
   return (
     <MenuSurface x={state.x} y={state.y} onClose={onClose} className="w-36">
-      <button onClick={() => { onToggle(); onClose(); }} className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer">
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          {state.pinned
-            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V5zm7 10v6m-3 0h6" />}
-        </svg>
-        {state.pinned ? t("unpin") : t("pin")}
-      </button>
+      <PinToggleMenuItem isPinned={state.pinned} onToggle={onToggle} onClose={onClose} />
     </MenuSurface>
   );
 }
@@ -115,24 +107,18 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 if (entry.kind === "category") {
                   const count = items.filter((i) => i.category === entry.cat.id).length;
                   return (
-                    <button key={entry.cat.id} onClick={() => onSelectCategory(entry.cat.id)}
+                    <CategoryTagCard key={entry.cat.id} onClick={() => onSelectCategory(entry.cat.id)}
                       onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: entry.cat.id, pinned: true, x: e.clientX, y: e.clientY }); }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer">
-                      <FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />
-                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{entry.cat.label}</span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
-                    </button>
+                      icon={<FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />}
+                      label={entry.cat.label} count={count} />
                   );
                 }
                 const count = items.filter((i) => i.tags.includes(entry.tag.id)).length;
                 return (
-                  <button key={entry.tag.id} onClick={() => onSelectTag(entry.tag.id)}
+                  <CategoryTagCard key={entry.tag.id} onClick={() => onSelectTag(entry.tag.id)}
                     onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "tag", id: entry.tag.id, pinned: true, x: e.clientX, y: e.clientY }); }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer">
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: entry.tag.color }} />
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{entry.tag.label}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
-                  </button>
+                    icon={<span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: entry.tag.color }} />}
+                    label={entry.tag.label} count={count} />
                 );
               })}
             </div>
@@ -148,29 +134,27 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
           </h2>
           <div className="flex flex-wrap gap-3">
             {categorizedGroups.map(({ category, count }) => (
-              <button
+              <CategoryTagCard
                 key={category.id}
                 onClick={() => onSelectCategory(category.id)}
                 onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: category.id, pinned: false, x: e.clientX, y: e.clientY }); }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
-              >
-                <FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />
-                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{category.label}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
-              </button>
+                icon={<FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />}
+                label={category.label}
+                count={count}
+              />
             ))}
 
             {uncategorizedCount > 0 && (
-              <button
+              <CategoryTagCard
                 onClick={() => onSelectCategory("")}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
-              >
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
-                </svg>
-                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t("uncategorized")}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{uncategorizedCount}</span>
-              </button>
+                icon={
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
+                  </svg>
+                }
+                label={t("uncategorized")}
+                count={uncategorizedCount}
+              />
             )}
           </div>
         </section>
@@ -183,16 +167,14 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
         </h2>
         <div className="flex flex-wrap gap-3">
           {tagGroups.map(({ tag, count }) => (
-            <button
+            <CategoryTagCard
               key={tag.id}
               onClick={() => onSelectTag(tag.id)}
               onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "tag", id: tag.id, pinned: false, x: e.clientX, y: e.clientY }); }}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
-            >
-              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
-              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{tag.label}</span>
-              <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
-            </button>
+              icon={<span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />}
+              label={tag.label}
+              count={count}
+            />
           ))}
         </div>
       </section>

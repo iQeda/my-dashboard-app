@@ -5,7 +5,7 @@ import { sortByLabel } from "../utils/labels";
 import { getOrderedPinnedEntries, pinnedEntryId, pinnedEntryLabel, type PinnedEntry } from "../utils/pinned";
 import { useI18n } from "../i18n";
 import { usePointerReorder } from "../hooks/usePointerReorder";
-import { MenuSurface } from "./MenuSurface";
+import { MenuSurface, PinToggleMenuItem } from "./MenuSurface";
 import { FolderIcon, PencilIcon, StarIcon, TrashIcon } from "./icons";
 
 interface SidebarProps {
@@ -71,14 +71,7 @@ function SidebarContextMenu({
 
   return (
     <MenuSurface x={state.x} y={state.y} onClose={onClose} className="w-44">
-      <button onClick={() => { onTogglePin(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          {isPinned
-            ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V5zm7 10v6m-3 0h6" />}
-        </svg>
-        {isPinned ? t("unpin") : t("pin")}
-      </button>
+      <PinToggleMenuItem isPinned={isPinned} onToggle={onTogglePin} onClose={onClose} />
       <button onClick={() => { onRename(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
         <PencilIcon className="w-4 h-4 text-gray-400" />
         {t("rename")}

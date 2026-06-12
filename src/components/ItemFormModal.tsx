@@ -7,6 +7,7 @@ import { TAG_COLORS, DEFAULT_ICONS } from "../constants";
 import { slugify, uniqueId, sortByLabel } from "../utils/labels";
 import { useI18n } from "../i18n";
 import { useDismiss } from "../hooks/useDismiss";
+import { ModalShell } from "./ModalShell";
 
 interface ItemFormModalProps {
   readonly item: DashboardItem | null;
@@ -274,12 +275,7 @@ export function ItemFormModal({
   }, [onClose, handleSubmit]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <ModalShell onClose={onClose}>
       <div
         className="w-full max-w-2xl mx-6 p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-5 max-h-[90vh] overflow-y-scroll overscroll-contain"
       >
@@ -510,6 +506,6 @@ export function ItemFormModal({
           </button>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }
