@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -15,7 +15,6 @@ import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
 import { Sidebar } from "./components/Sidebar";
 import { SearchBar } from "./components/SearchBar";
 import { Dashboard } from "./components/Dashboard";
-import { ItemFormModal } from "./components/ItemFormModal";
 import { CommandPalette } from "./components/CommandPalette";
 import { SettingsModal } from "./components/SettingsModal";
 import { ActiveFilters } from "./components/ActiveFilters";
@@ -28,6 +27,11 @@ import { DashboardOverview } from "./components/DashboardOverview";
 import type { DashboardItem, TagDef, Category } from "./types";
 import { BoltIcon } from "./components/icons";
 import { ImportNameModal } from "./components/ImportNameModal";
+
+// EmojiPicker の絵文字データ（約775KB）ごと初回オープン時まで遅延ロードする
+const ItemFormModal = lazy(() =>
+  import("./components/ItemFormModal").then((m) => ({ default: m.ItemFormModal })),
+);
 
 export function App() {
   // useConfig() はアプリ全体でこの1回のみ。ConfigContext 経由で共有する（Phase 2-1）
@@ -169,6 +173,16 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   // CommandPalette からの選択は「既に選択中なら解除しない」（再選択でトグルさせない）
   const paletteToggleTag = useCallback((id: string) => { if (!selectedTags.has(id)) toggleTag(id); navigateTo("items"); }, [selectedTags, toggleTag, navigateTo]);
   const paletteToggleCategory = useCallback((id: string) => { if (selectedCategory !== id) toggleCategory(id); navigateTo("items"); }, [selectedCategory, toggleCategory, navigateTo]);
+  const toggleCategoryPin = useCallback((id: string) => {
+    const cat = (config?.categoryList ?? []).find((c) => c.id === id);
+    if (cat) updateCategoryDef(id, { pinned: !cat.pinned });
+  }, [config?.categoryList, updateCategoryDef]);
+  const toggleTagPin = useCallback((id: string) => {
+    const tag = config?.tagDefs.find((d) => d.id === id);
+    if (tag) updateTagDef(id, { pinned: !tag.pinned });
+  }, [config?.tagDefs, updateTagDef]);
+  const dismissUpdate = useCallback((v: string) => updateViewPrefs({ dismissedUpdateVersion: v }), [updateViewPrefs]);
+  const existingItemIds = useMemo(() => new Set(config?.items.map((i) => i.id)), [config?.items]);
 
   useAppShortcuts({
     showModal,
@@ -199,33 +213,35 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [focusedItem]);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setEditingItem(null);
     setShowModal(true);
-  };
+  }, []);
 
-  const handleEdit = (item: DashboardItem) => {
+  const handleEdit = useCallback((item: DashboardItem) => {
     setEditingItem(item);
     setShowModal(true);
-  };
+  }, []);
 
-  const handleSave = async (item: DashboardItem, newTagDefs: readonly TagDef[], newCategoryList: readonly Category[]) => {
+  const closeItemModal = useCallback(() => {
+    setShowModal(false);
+    setEditingItem(null);
+  }, []);
+
+  const handleSave = useCallback(async (item: DashboardItem, newTagDefs: readonly TagDef[], newCategoryList: readonly Category[]) => {
     if (editingItem) {
       await updateItem(item, newTagDefs, newCategoryList);
-      setShowModal(false);
-      setEditingItem(null);
+      closeItemModal();
       return;
     }
     await addItem(item, newTagDefs, newCategoryList);
-    setShowModal(false);
-    setEditingItem(null);
-  };
+    closeItemModal();
+  }, [editingItem, updateItem, addItem, closeItemModal]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     await deleteItem(id);
-    setShowModal(false);
-    setEditingItem(null);
-  };
+    closeItemModal();
+  }, [deleteItem, closeItemModal]);
 
   const [importInitialName, setImportInitialName] = useState("");
   const [pendingImportPath, setPendingImportPath] = useState<string | null>(null);
@@ -365,8 +381,8 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
             onLaunch={launchAndRecord}
             onEdit={handleEdit}
             onToggleFavorite={toggleFavorite}
-            onToggleCategoryPin={(id) => { const cat = (config.categoryList ?? []).find((c) => c.id === id); if (cat) updateCategoryDef(id, { pinned: !cat.pinned }); }}
-            onToggleTagPin={(id) => { const tag = config.tagDefs.find((t) => t.id === id); if (tag) updateTagDef(id, { pinned: !tag.pinned }); }}
+            onToggleCategoryPin={toggleCategoryPin}
+            onToggleTagPin={toggleTagPin}
             pinnedOrder={config.pinnedOrder ?? []}
           />
         ) : (
@@ -417,7 +433,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       </div>
       <UpdateNotification
         dismissedVersion={config.dismissedUpdateVersion}
-        onDismiss={(v) => updateViewPrefs({ dismissedUpdateVersion: v })}
+        onDismiss={dismissUpdate}
       />
 
       {showSettings && (
@@ -469,6 +485,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       )}
 
       {showModal && (
+        <Suspense fallback={null}>
         <ItemFormModal
           item={editingItem}
           tagDefs={config.tagDefs}
@@ -476,14 +493,12 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           emojiHistory={config.emojiHistory ?? []}
           defaultTags={editingItem ? [] : [...selectedTags]}
           defaultCategory={editingItem ? undefined : (selectedCategory ?? undefined)}
-          existingItemIds={new Set(config.items.map((i) => i.id))}
+          existingItemIds={existingItemIds}
           onSave={handleSave}
           onDelete={editingItem ? handleDelete : undefined}
-          onClose={() => {
-            setShowModal(false);
-            setEditingItem(null);
-          }}
+          onClose={closeItemModal}
         />
+        </Suspense>
       )}
     </div>
   );

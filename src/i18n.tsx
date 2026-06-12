@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 export type Locale = "en" | "ja";
 
@@ -169,8 +169,9 @@ const I18nContext = createContext<{ t: TranslationFn; locale: Locale }>({
 });
 
 export function I18nProvider({ locale, children }: { locale: Locale; children: React.ReactNode }) {
-  const t = createTranslator(locale);
-  return <I18nContext.Provider value={{ t, locale }}>{children}</I18nContext.Provider>;
+  // value を毎レンダー新規生成すると全コンシューマが再レンダーされるため locale でメモ化
+  const value = useMemo(() => ({ t: createTranslator(locale), locale }), [locale]);
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

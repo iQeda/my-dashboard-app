@@ -10,6 +10,13 @@ interface AppPickerProps {
   readonly onSelect: (app: InstalledApp) => void;
 }
 
+// インストール済みアプリ一覧はセッション中変わらない前提でモジュールキャッシュする
+let installedAppsCache: Promise<InstalledApp[]> | null = null;
+function fetchInstalledApps(): Promise<InstalledApp[]> {
+  installedAppsCache ??= invoke<InstalledApp[]>("list_installed_apps");
+  return installedAppsCache;
+}
+
 // インストール済み Mac アプリの検索 + 選択ドロップダウン（ItemFormModal 用）
 export function AppPicker({ value, onSelect }: AppPickerProps) {
   const { t } = useI18n();
@@ -21,7 +28,7 @@ export function AppPicker({ value, onSelect }: AppPickerProps) {
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
-    invoke<InstalledApp[]>("list_installed_apps").then(setApps).catch(console.error);
+    fetchInstalledApps().then(setApps).catch(console.error);
   }, []);
 
   useEffect(() => {
