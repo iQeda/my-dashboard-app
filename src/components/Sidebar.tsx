@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
+import { useState, useCallback, useMemo } from "react";
 import type { DashboardItem, TagDef, Category } from "../types";
 import { TAG_COLORS } from "../constants";
 import { sortByLabel } from "../utils/labels";
 import { getOrderedPinnedEntries, pinnedEntryId, pinnedEntryLabel, type PinnedEntry } from "../utils/pinned";
 import { useI18n } from "../i18n";
+import { usePointerReorder } from "../hooks/usePointerReorder";
+import { MenuSurface } from "./MenuSurface";
 
 interface SidebarProps {
   readonly items: readonly DashboardItem[];
@@ -64,33 +65,11 @@ function SidebarContextMenu({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [onClose]);
-
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handle);
-    return () => document.removeEventListener("keydown", handle);
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    if (rect.right > window.innerWidth) ref.current.style.left = `${state.x - rect.width}px`;
-    if (rect.bottom > window.innerHeight) ref.current.style.top = `${state.y - rect.height}px`;
-  }, [state.x, state.y]);
 
   const btn = "flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm transition-colors cursor-pointer";
 
-  return createPortal(
-    <div ref={ref} style={{ position: "fixed", top: state.y, left: state.x }} className="z-[100] w-44 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-xl">
+  return (
+    <MenuSurface x={state.x} y={state.y} onClose={onClose} className="w-44">
       <button onClick={() => { onTogglePin(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           {isPinned
@@ -114,8 +93,7 @@ function SidebarContextMenu({
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         {t("delete")}
       </button>
-    </div>,
-    document.body,
+    </MenuSurface>
   );
 }
 
@@ -183,24 +161,11 @@ function SortContextMenu({ x, y, onSortAsc, onSortDesc, onClose }: {
   onSortAsc: () => void; onSortDesc: () => void; onClose: () => void;
 }) {
   const { t } = useI18n();
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handle = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [onClose]);
-
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handle);
-    return () => document.removeEventListener("keydown", handle);
-  }, [onClose]);
 
   const btn = "flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer";
 
   return (
-    <div ref={ref} style={{ position: "fixed", top: y, left: x }} className="z-[100] w-40 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-xl">
+    <MenuSurface x={x} y={y} onClose={onClose} className="w-40">
       <button onClick={onSortAsc} className={btn}>
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h5m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
         {t("sort_asc_name")}
@@ -209,7 +174,7 @@ function SortContextMenu({ x, y, onSortAsc, onSortDesc, onClose }: {
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h5m4 0l4 4m0 0l4-4m-4 4V4" /></svg>
         {t("sort_desc_name")}
       </button>
-    </div>
+    </MenuSurface>
   );
 }
 
@@ -266,60 +231,12 @@ export function Sidebar({
   const [deleteTarget, setDeleteTarget] = useState<{ kind: "tag" | "category"; id: string } | null>(null);
 
   // Category drag
-  const [catDragIndex, setCatDragIndex] = useState<number | null>(null);
-  const [catOverIndex, setCatOverIndex] = useState<number | null>(null);
-  const catIsDragging = useRef(false);
-  const catStartY = useRef(0);
-  const catDidMove = useRef(false);
-  const catRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const catDrag = usePointerReorder({ items: categoryList, onReorder: onReorderCategoryList });
+  const handleCatClick = useCallback((id: string) => catDrag.clickGuard(() => onToggleCategory(id)), [catDrag, onToggleCategory]);
 
   // Tag drag
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
-  const isDragging = useRef(false);
-  const startY = useRef(0);
-  const didMove = useRef(false);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Category drag handlers
-  const handleCatPointerDown = useCallback((e: React.PointerEvent, i: number) => {
-    catIsDragging.current = false; catDidMove.current = false; catStartY.current = e.clientY; setCatDragIndex(i);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
-  const handleCatPointerMove = useCallback((e: React.PointerEvent) => {
-    if (catDragIndex === null) return;
-    if (!catIsDragging.current) { if (Math.abs(e.clientY - catStartY.current) < 5) return; catIsDragging.current = true; catDidMove.current = true; }
-    let closest = catDragIndex, closestDist = Infinity;
-    catRefs.current.forEach((el, i) => { if (!el) return; const d = Math.abs(e.clientY - (el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2)); if (d < closestDist) { closestDist = d; closest = i; } });
-    setCatOverIndex(closest);
-  }, [catDragIndex]);
-  const handleCatPointerUp = useCallback(() => {
-    if (catDragIndex !== null && catOverIndex !== null && catDragIndex !== catOverIndex && catDidMove.current) {
-      const r = [...categoryList]; const [m] = r.splice(catDragIndex, 1); r.splice(catOverIndex, 0, m); onReorderCategoryList(r);
-    }
-    catIsDragging.current = false; catDidMove.current = false; setCatDragIndex(null); setCatOverIndex(null);
-  }, [catDragIndex, catOverIndex, categoryList, onReorderCategoryList]);
-  const handleCatClick = useCallback((id: string) => { if (!catDidMove.current) onToggleCategory(id); }, [onToggleCategory]);
-
-  // Tag drag handlers
-  const handlePointerDown = useCallback((e: React.PointerEvent, i: number) => {
-    isDragging.current = false; didMove.current = false; startY.current = e.clientY; setDragIndex(i);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (dragIndex === null) return;
-    if (!isDragging.current) { if (Math.abs(e.clientY - startY.current) < 5) return; isDragging.current = true; didMove.current = true; }
-    let closest = dragIndex, closestDist = Infinity;
-    itemRefs.current.forEach((el, i) => { if (!el) return; const d = Math.abs(e.clientY - (el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2)); if (d < closestDist) { closestDist = d; closest = i; } });
-    setOverIndex(closest);
-  }, [dragIndex]);
-  const handlePointerUp = useCallback(() => {
-    if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex && didMove.current) {
-      const r = [...tagDefs]; const [m] = r.splice(dragIndex, 1); r.splice(overIndex, 0, m); onReorderTagDefs(r);
-    }
-    isDragging.current = false; didMove.current = false; setDragIndex(null); setOverIndex(null);
-  }, [dragIndex, overIndex, tagDefs, onReorderTagDefs]);
-  const handleTagClick = useCallback((id: string) => { if (!didMove.current) onToggleTag(id); }, [onToggleTag]);
+  const tagDrag = usePointerReorder({ items: tagDefs, onReorder: onReorderTagDefs });
+  const handleTagClick = useCallback((id: string) => tagDrag.clickGuard(() => onToggleTag(id)), [tagDrag, onToggleTag]);
 
   const handleSortCategories = useCallback((order: "asc" | "desc") => {
     onReorderCategoryList(sortByLabel(categoryList, (c) => c.label, order));
@@ -338,39 +255,14 @@ export function Sidebar({
   );
 
   // Pinned drag
-  const [pinDragIndex, setPinDragIndex] = useState<number | null>(null);
-  const [pinOverIndex, setPinOverIndex] = useState<number | null>(null);
-  const pinIsDragging = useRef(false);
-  const pinStartY = useRef(0);
-  const pinDidMove = useRef(false);
-  const pinRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  const handlePinPointerDown = useCallback((e: React.PointerEvent, i: number) => {
-    pinIsDragging.current = false; pinDidMove.current = false; pinStartY.current = e.clientY; setPinDragIndex(i);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
-  const handlePinPointerMove = useCallback((e: React.PointerEvent) => {
-    if (pinDragIndex === null) return;
-    if (!pinIsDragging.current) { if (Math.abs(e.clientY - pinStartY.current) < 5) return; pinIsDragging.current = true; pinDidMove.current = true; }
-    let closest = pinDragIndex, closestDist = Infinity;
-    pinRefs.current.forEach((el, i) => { if (!el) return; const d = Math.abs(e.clientY - (el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2)); if (d < closestDist) { closestDist = d; closest = i; } });
-    setPinOverIndex(closest);
-  }, [pinDragIndex]);
-  const handlePinPointerUp = useCallback(() => {
-    if (pinDragIndex !== null && pinOverIndex !== null && pinDragIndex !== pinOverIndex && pinDidMove.current) {
-      const reordered = [...pinnedItems];
-      const [moved] = reordered.splice(pinDragIndex, 1);
-      reordered.splice(pinOverIndex, 0, moved);
-      onUpdatePinnedOrder(reordered.map(pinnedEntryId));
-    }
-    pinIsDragging.current = false; pinDidMove.current = false; setPinDragIndex(null); setPinOverIndex(null);
-  }, [pinDragIndex, pinOverIndex, pinnedItems, onUpdatePinnedOrder]);
-  const handlePinClick = useCallback((entry: PinnedEntry) => {
-    if (!pinDidMove.current) {
-      if (entry.kind === "category") onToggleCategory(entry.cat.id);
-      else onToggleTag(entry.tag.id);
-    }
-  }, [onToggleCategory, onToggleTag]);
+  const pinDrag = usePointerReorder({
+    items: pinnedItems,
+    onReorder: (reordered) => onUpdatePinnedOrder(reordered.map(pinnedEntryId)),
+  });
+  const handlePinClick = useCallback((entry: PinnedEntry) => pinDrag.clickGuard(() => {
+    if (entry.kind === "category") onToggleCategory(entry.cat.id);
+    else onToggleTag(entry.tag.id);
+  }), [pinDrag, onToggleCategory, onToggleTag]);
 
   const handleSortPinned = useCallback((order: "asc" | "desc") => {
     onUpdatePinnedOrder(sortByLabel(pinnedItems, pinnedEntryLabel, order).map(pinnedEntryId));
@@ -443,13 +335,13 @@ export function Sidebar({
               : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium";
             const ringClass = entry.kind === "category" ? "ring-purple-400" : "ring-blue-400";
             return (
-              <div key={id} ref={(el) => { pinRefs.current[i] = el; }}
-                onPointerDown={(e) => handlePinPointerDown(e, i)} onPointerMove={handlePinPointerMove} onPointerUp={handlePinPointerUp}
+              <div key={id} ref={pinDrag.setItemRef(i)}
+                onPointerDown={(e) => pinDrag.handlePointerDown(e, i)} onPointerMove={pinDrag.handlePointerMove} onPointerUp={pinDrag.handlePointerUp}
                 onClick={() => handlePinClick(entry)}
                 onContextMenu={(e) => { e.preventDefault(); if (entry.kind === "category") setCtxMenu({ kind: "category", cat: entry.cat, x: e.clientX, y: e.clientY }); else setCtxMenu({ kind: "tag", tag: entry.tag, x: e.clientX, y: e.clientY }); }}
                 className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors select-none cursor-grab active:cursor-grabbing ${
                   isSelected ? selectedClass : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-                } ${pinIsDragging.current && pinDragIndex === i ? "opacity-40" : ""} ${pinIsDragging.current && pinOverIndex === i && pinDragIndex !== i ? `ring-2 ${ringClass} ring-offset-1 dark:ring-offset-gray-900 rounded-md` : ""}`}>
+                } ${pinDrag.isDragSource(i) ? "opacity-40" : ""} ${pinDrag.isDropTarget(i) ? `ring-2 ${ringClass} ring-offset-1 dark:ring-offset-gray-900 rounded-md` : ""}`}>
                 {entry.kind === "category" ? (
                   <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                 ) : (
@@ -480,7 +372,6 @@ export function Sidebar({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          {/* eslint-disable-next-line react-hooks/refs */}
           {categoriesOpen && categoryList.map((cat, i) => {
             if (cat.pinned) return null;
             if (editPanel?.kind === "rename-cat" && editPanel.cat.id === cat.id) {
@@ -490,13 +381,13 @@ export function Sidebar({
               return <InlineDeleteConfirm key={cat.id} onConfirm={() => { onDeleteCategoryDef(cat.id); setDeleteTarget(null); }} onCancel={() => setDeleteTarget(null)} />;
             }
             return (
-              <div key={cat.id} ref={(el) => { catRefs.current[i] = el; }}
-                onPointerDown={(e) => handleCatPointerDown(e, i)} onPointerMove={handleCatPointerMove} onPointerUp={handleCatPointerUp}
+              <div key={cat.id} ref={catDrag.setItemRef(i)}
+                onPointerDown={(e) => catDrag.handlePointerDown(e, i)} onPointerMove={catDrag.handlePointerMove} onPointerUp={catDrag.handlePointerUp}
                 onClick={() => handleCatClick(cat.id)}
                 onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ kind: "category", cat, x: e.clientX, y: e.clientY }); }}
                 className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors select-none cursor-grab active:cursor-grabbing ${
                   selectedCategory === cat.id ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-                } ${catIsDragging.current && catDragIndex === i ? "opacity-40" : ""} ${catIsDragging.current && catOverIndex === i && catDragIndex !== i ? "ring-2 ring-purple-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
+                } ${catDrag.isDragSource(i) ? "opacity-40" : ""} ${catDrag.isDropTarget(i) ? "ring-2 ring-purple-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
                 <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                 <span className="flex-1 truncate">{cat.label}</span>
                 <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{catCounts.get(cat.id) ?? 0}</span>
@@ -532,7 +423,6 @@ export function Sidebar({
         </svg>
       </button>
 
-      {/* eslint-disable-next-line react-hooks/refs */}
       {tagsOpen && tagDefs.map((tag, i) => {
         if (tag.pinned) return null;
         if (editPanel?.kind === "rename-tag" && editPanel.tag.id === tag.id) {
@@ -545,13 +435,13 @@ export function Sidebar({
           return <InlineDeleteConfirm key={tag.id} onConfirm={() => { onDeleteTagDef(tag.id); setDeleteTarget(null); }} onCancel={() => setDeleteTarget(null)} />;
         }
         return (
-          <div key={tag.id} ref={(el) => { itemRefs.current[i] = el; }}
-            onPointerDown={(e) => handlePointerDown(e, i)} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}
+          <div key={tag.id} ref={tagDrag.setItemRef(i)}
+            onPointerDown={(e) => tagDrag.handlePointerDown(e, i)} onPointerMove={tagDrag.handlePointerMove} onPointerUp={tagDrag.handlePointerUp}
             onClick={() => handleTagClick(tag.id)}
             onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ kind: "tag", tag, x: e.clientX, y: e.clientY }); }}
             className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors select-none cursor-grab active:cursor-grabbing ${
               selectedTags.has(tag.id) ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-            } ${isDragging.current && dragIndex === i ? "opacity-40" : ""} ${isDragging.current && overIndex === i && dragIndex !== i ? "ring-2 ring-blue-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
+            } ${tagDrag.isDragSource(i) ? "opacity-40" : ""} ${tagDrag.isDropTarget(i) ? "ring-2 ring-blue-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
             <span className="flex-1 truncate">{tag.label}</span>
             <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{tagCounts.get(tag.id) ?? 0}</span>
@@ -593,15 +483,14 @@ export function Sidebar({
       )}
 
       {/* Sort Menu */}
-      {sortMenu && createPortal(
+      {sortMenu && (
         <SortContextMenu
           x={sortMenu.x}
           y={sortMenu.y}
           onSortAsc={() => sortMenu.kind === "category" ? handleSortCategories("asc") : sortMenu.kind === "tag" ? handleSortTags("asc") : handleSortPinned("asc")}
           onSortDesc={() => sortMenu.kind === "category" ? handleSortCategories("desc") : sortMenu.kind === "tag" ? handleSortTags("desc") : handleSortPinned("desc")}
           onClose={() => setSortMenu(null)}
-        />,
-        document.body,
+        />
       )}
     </aside>
   );

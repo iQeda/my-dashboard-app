@@ -6,6 +6,7 @@ import { EmojiPicker } from "./EmojiPicker";
 import { TAG_COLORS, DEFAULT_ICONS } from "../constants";
 import { slugify, uniqueId, sortByLabel } from "../utils/labels";
 import { useI18n } from "../i18n";
+import { useDismiss } from "../hooks/useDismiss";
 
 interface ItemFormModalProps {
   readonly item: DashboardItem | null;
@@ -50,20 +51,10 @@ function AppPicker({
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    updatePosition();
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (
-        inputRef.current && !inputRef.current.contains(target) &&
-        listRef.current && !listRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (open) updatePosition();
   }, [open, updatePosition]);
+  // Escape はモーダル親が処理するため useDismiss では扱わない
+  useDismiss([inputRef, listRef], () => setOpen(false), { enabled: open, escape: false });
 
   const filtered = apps.filter((a) =>
     a.name.toLowerCase().includes(query.toLowerCase()),

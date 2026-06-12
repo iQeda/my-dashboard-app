@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { createPortal } from "react-dom";
+import { useDismiss } from "../hooks/useDismiss";
 
 interface ToolbarDropdownProps {
   readonly label: string;
@@ -15,23 +16,7 @@ export function ToolbarDropdown({ label, icon, isOpen, onToggle, onClose, isActi
   const btnRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (btnRef.current?.contains(e.target as Node)) return;
-      if (popRef.current?.contains(e.target as Node)) return;
-      onClose();
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("mousedown", handleClick);
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      window.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [isOpen, onClose]);
+  useDismiss([btnRef, popRef], onClose, { enabled: isOpen });
 
   const rect = btnRef.current?.getBoundingClientRect();
 

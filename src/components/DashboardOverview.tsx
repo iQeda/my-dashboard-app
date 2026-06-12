@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../types";
 import { ItemCard } from "./ItemCard";
 import { useI18n } from "../i18n";
 import { getOrderedPinnedEntries } from "../utils/pinned";
+import { MenuSurface } from "./MenuSurface";
 import { resolveRecentItems } from "../utils/recent";
 
 interface DashboardOverviewProps {
@@ -26,20 +26,9 @@ type PinMenuState = { readonly kind: "category" | "tag"; readonly id: string; re
 
 function PinContextMenu({ state, onToggle, onClose }: { readonly state: NonNullable<PinMenuState>; readonly onToggle: () => void; readonly onClose: () => void }) {
   const { t } = useI18n();
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handle = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [onClose]);
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handle);
-    return () => document.removeEventListener("keydown", handle);
-  }, [onClose]);
 
-  return createPortal(
-    <div ref={ref} style={{ position: "fixed", top: state.y, left: state.x }} className="z-[100] w-36 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-xl">
+  return (
+    <MenuSurface x={state.x} y={state.y} onClose={onClose} className="w-36">
       <button onClick={() => { onToggle(); onClose(); }} className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer">
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           {state.pinned
@@ -48,8 +37,7 @@ function PinContextMenu({ state, onToggle, onClose }: { readonly state: NonNulla
         </svg>
         {state.pinned ? t("unpin") : t("pin")}
       </button>
-    </div>,
-    document.body,
+    </MenuSurface>
   );
 }
 
