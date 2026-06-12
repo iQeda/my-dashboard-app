@@ -3,6 +3,7 @@ import { save, open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useConfig } from "./hooks/useConfig";
+import { ConfigContext, useConfigContext } from "./hooks/configContext";
 import { useFilter } from "./hooks/useFilter";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
 import { Sidebar } from "./components/Sidebar";
@@ -51,23 +52,11 @@ export function computeDisplayItems(
 }
 
 export default function App() {
-  const {
-    config,
-    loading,
-    error,
-    updateLocale,
-  } = useConfig();
+  // useConfig() はアプリ全体でこの1回のみ。ConfigContext 経由で共有する（Phase 2-1）
+  const store = useConfig();
+  const { config, loading, error, updateLocale } = store;
 
-  const [locale, setLocale] = useState<Locale>((config?.locale as Locale) ?? "en");
-
-  useEffect(() => {
-    if (config?.locale) setLocale(config.locale as Locale);
-  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleChangeLocale = (newLocale: Locale) => {
-    setLocale(newLocale);
-    updateLocale(newLocale);
-  };
+  const locale: Locale = config?.locale ?? "en";
 
   if (loading) {
     return (
@@ -88,9 +77,11 @@ export default function App() {
   if (!config) return null;
 
   return (
-    <I18nProvider locale={locale}>
-      <AppContent locale={locale} onChangeLocale={handleChangeLocale} />
-    </I18nProvider>
+    <ConfigContext.Provider value={store}>
+      <I18nProvider locale={locale}>
+        <AppContent locale={locale} onChangeLocale={updateLocale} />
+      </I18nProvider>
+    </ConfigContext.Provider>
   );
 }
 
@@ -115,7 +106,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     updateGlobalShortcut,
     reload,
     exportConfig,
-  } = useConfig();
+  } = useConfigContext();
   const {
     selectedTags,
     selectedCategory,

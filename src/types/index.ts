@@ -1,3 +1,5 @@
+import type { Locale } from "../i18n";
+
 export type ItemType = "app" | "url";
 export type CardSize = "sm" | "md" | "lg";
 export type ViewMode = "card" | "list";
@@ -36,7 +38,7 @@ export interface AppConfig {
   readonly viewMode?: ViewMode;
   readonly cardSize?: CardSize;
   readonly emojiHistory?: readonly string[];
-  readonly locale?: string;
+  readonly locale?: Locale;
   readonly sidebarWidth?: number;
   readonly globalShortcut?: string;
   readonly sidebarCategoriesOpen?: boolean;
@@ -52,6 +54,22 @@ export interface RecentAccessEntry {
   readonly id: string;
   readonly at: number;
 }
+
+// updateViewPrefs で永続化できる表示系設定（AppConfig のサブセット）
+export type ViewPrefs = Partial<
+  Pick<
+    AppConfig,
+    | "viewMode"
+    | "cardSize"
+    | "sidebarWidth"
+    | "sidebarCategoriesOpen"
+    | "sidebarTagsOpen"
+    | "combinedFilter"
+    | "multiTagMode"
+    | "pinnedOrder"
+    | "dismissedUpdateVersion"
+  >
+>;
 
 export interface InstalledApp {
   readonly name: string;
