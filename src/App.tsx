@@ -4,6 +4,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useConfig } from "./hooks/useConfig";
 import { ConfigContext, useConfigContext } from "./hooks/configContext";
+import { useNavigation } from "./hooks/useNavigation";
+import { useViewPrefs } from "./hooks/useViewPrefs";
+import { useSidebarResize } from "./hooks/useSidebarResize";
+import { useLauncher } from "./hooks/useLauncher";
+import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { groupItemsByCategory } from "./utils/groupItems";
 import { useFilter } from "./hooks/useFilter";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
@@ -20,9 +25,9 @@ import { ToolbarControls } from "./components/ToolbarControls";
 import { I18nProvider, useI18n } from "./i18n";
 import type { Locale } from "./i18n";
 import { DashboardOverview } from "./components/DashboardOverview";
-import type { DashboardItem, TagDef, Category, CardSize, ViewMode, PageView } from "./types";
+import type { DashboardItem, TagDef, Category } from "./types";
 import { BoltIcon } from "./components/icons";
-import { ModalShell } from "./components/ModalShell";
+import { ImportNameModal } from "./components/ImportNameModal";
 
 export default function App() {
   // useConfig() はアプリ全体でこの1回のみ。ConfigContext 経由で共有する（Phase 2-1）
@@ -108,7 +113,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showImportNameModal, setShowImportNameModal] = useState(false);
-  const [pageView, setPageViewRaw] = useState<PageView>("dashboard");
+  const { pageView, navigateTo } = useNavigation();
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -129,25 +134,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     if (idx >= 0) setFocusedIndex(idx);
   }, [displayItems, setFocusedIndex]);
 
-  const navigateTo = useCallback((view: PageView) => {
-    setPageViewRaw(view);
-    history.pushState({ pageView: view }, "", "");
-  }, []);
-
-  useEffect(() => {
-    history.replaceState({ pageView: "dashboard" }, "", "");
-    const handlePopState = (e: PopStateEvent) => {
-      const state = e.state as { pageView?: PageView } | null;
-      if (state?.pageView) {
-        setPageViewRaw(state.pageView);
-      }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-  const [cardSize, setCardSize] = useState<CardSize>(config?.cardSize ?? "lg");
-  const [viewMode, setViewMode] = useState<ViewMode>(config?.viewMode ?? "list");
-  const [sidebarWidth, setSidebarWidth] = useState(config?.sidebarWidth ?? 208);
+  const { cardSize, setCardSize, viewMode, setViewMode, sidebarWidth, setSidebarWidth } = useViewPrefs(config, loading);
 
   // Listen for global shortcut event
   useEffect(() => {
@@ -157,45 +144,10 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     return () => { unlisten.then((f) => f()); };
   }, []);
 
-  // Sync from config on first load
-  useEffect(() => {
-    if (config) {
-      if (config.cardSize) setCardSize(config.cardSize);
-      if (config.viewMode) setViewMode(config.viewMode);
-      if (config.sidebarWidth) setSidebarWidth(config.sidebarWidth);
-    }
-  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { launchAndRecord, openAll } = useLauncher(recordAccess);
 
-  // Sidebar resize
-  const launchAndRecord = useCallback(async (item: DashboardItem) => {
-    try {
-      if (item.type === "app") {
-        await invoke("launch_app", { name: item.target });
-        await recordAccess(item.id);
-        return;
-      }
-      await invoke("open_url", { url: item.target });
-      await recordAccess(item.id);
-    } catch (e) {
-      console.error("Failed to launch:", e);
-    }
-  }, [recordAccess]);
-
-  const sidebarResizing = useRef(false);
-  const handleSidebarResizeStart = useCallback((e: React.PointerEvent) => {
-    sidebarResizing.current = true;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
-  const handleSidebarResizeMove = useCallback((e: React.PointerEvent) => {
-    if (!sidebarResizing.current) return;
-    const newWidth = Math.max(160, Math.min(400, e.clientX));
-    setSidebarWidth(newWidth);
-  }, []);
-  const handleSidebarResizeEnd = useCallback(() => {
-    if (!sidebarResizing.current) return;
-    sidebarResizing.current = false;
-    updateViewPrefs({ sidebarWidth });
-  }, [sidebarWidth, updateViewPrefs]);
+  const persistSidebarWidth = useCallback((width: number) => updateViewPrefs({ sidebarWidth: width }), [updateViewPrefs]);
+  const { onResizeStart, onResizeMove, onResizeEnd } = useSidebarResize(sidebarWidth, setSidebarWidth, persistSidebarWidth);
 
   const hasActiveFilters = selectedTags.size > 0 || selectedCategory !== null || showFavoritesOnly || typeFilter !== "all" || searchQuery !== "";
   const hasActiveFiltersRef = useRef(hasActiveFilters);
@@ -210,124 +162,28 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
   // ref 経由で常に最新の対象を参照する（stale-closure 回避）
   const openAllTargetsRef = useRef(openAllTargets);
   openAllTargetsRef.current = openAllTargets;
-  const openAll = useCallback(async (targets: readonly DashboardItem[]) => {
-    for (const item of targets) {
-      await launchAndRecord(item);
-    }
-  }, [launchAndRecord]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Layer 0: Modal / overlay Escape handling
-      if (showModal) {
-        if (e.key === "Escape") { setShowModal(false); setEditingItem(null); }
-        return;
-      }
-      if (showCommandPalette) return; // CommandPalette handles its own keys
-      if (showSettings) {
-        if (e.key === "Escape") setShowSettings(false);
-        return;
-      }
-      if (showImportNameModal) {
-        if (e.key === "Escape") setShowImportNameModal(false);
-        return;
-      }
-
-      const meta = e.metaKey;
-
-      // Layer 1: Meta/Ctrl shortcuts
-      if (meta) {
-        if (e.key === ",") {
-          e.preventDefault();
-          setShowSettings((prev) => !prev);
-          return;
-        }
-        if (e.key === "n") {
-          e.preventDefault();
-          setEditingItem(null);
-          setShowModal(true);
-          return;
-        }
-        if (e.key === "k") {
-          e.preventDefault();
-          setShowCommandPalette(true);
-          return;
-        }
-        if (e.key === "f" && !e.shiftKey) {
-          e.preventDefault();
-          if (pageView !== "items") navigateTo("items");
-          searchInputRef.current?.focus();
-          return;
-        }
-        if (e.shiftKey && e.key === "D") {
-          e.preventDefault();
-          navigateTo("dashboard");
-          return;
-        }
-        if (e.key === "o" && !e.shiftKey && pageView === "items" && hasActiveFiltersRef.current) {
-          e.preventDefault();
-          openAll(openAllTargetsRef.current);
-          return;
-        }
-        // Item operation shortcuts (items page + focused item)
-        const fi = focusedItemRef.current;
-        if (pageView === "items" && fi) {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            launchAndRecord(fi);
-            return;
-          }
-          if (e.key === "e") {
-            e.preventDefault();
-            setEditingItem(fi);
-            setShowModal(true);
-            return;
-          }
-          if (e.shiftKey && e.key === "F") {
-            e.preventDefault();
-            toggleFavorite(fi.id);
-            return;
-          }
-        }
-        return;
-      }
-
-      // Layer 2: Escape (no modal open)
-      if (e.key === "Escape") {
-        searchInputRef.current?.blur();
-        return;
-      }
-
-      // Layer 3: Arrow keys + Enter (items page)
-      const isDownKey = e.key === "ArrowDown" || (e.ctrlKey && e.key === "n");
-      const isUpKey = e.key === "ArrowUp" || (e.ctrlKey && e.key === "p");
-      if (pageView === "items" && isDownKey && document.activeElement === searchInputRef.current) {
-        e.preventDefault();
-        searchInputRef.current?.blur();
-        moveFocus(1);
-        return;
-      }
-      if (pageView === "items" && document.activeElement !== searchInputRef.current) {
-        if (isDownKey) {
-          e.preventDefault();
-          moveFocus(1);
-          return;
-        }
-        if (isUpKey) {
-          e.preventDefault();
-          moveFocus(-1);
-          return;
-        }
-        if (e.key === "Enter" && focusedItemRef.current) {
-          e.preventDefault();
-          launchAndRecord(focusedItemRef.current);
-          return;
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showModal, showCommandPalette, showSettings, showImportNameModal, pageView, navigateTo, launchAndRecord, openAll, toggleFavorite, moveFocus]);
+  useAppShortcuts({
+    showModal,
+    showCommandPalette,
+    showSettings,
+    showImportNameModal,
+    pageView,
+    searchInputRef,
+    focusedItemRef,
+    hasActiveFiltersRef,
+    openAllTargetsRef,
+    setShowModal,
+    setEditingItem,
+    setShowSettings,
+    setShowCommandPalette,
+    setShowImportNameModal,
+    navigateTo,
+    launchAndRecord,
+    openAll,
+    toggleFavorite,
+    moveFocus,
+  });
 
   // Scroll focused item into view
   useEffect(() => {
@@ -364,7 +220,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     setEditingItem(null);
   };
 
-  const [importProfileName, setImportProfileName] = useState("");
+  const [importInitialName, setImportInitialName] = useState("");
   const [pendingImportPath, setPendingImportPath] = useState<string | null>(null);
 
   const handleImport = async () => {
@@ -375,22 +231,22 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
     });
     if (path) {
       const basename = path.split("/").pop()?.replace(".json", "") ?? "imported";
-      setImportProfileName(basename);
+      setImportInitialName(basename);
       setPendingImportPath(path);
       setShowImportNameModal(true);
     }
   };
 
-  const confirmImport = useCallback(async () => {
-    if (!pendingImportPath || !importProfileName.trim()) return;
+  const confirmImport = useCallback(async (name: string) => {
+    if (!pendingImportPath || !name.trim()) return;
     try {
-      await invoke("import_config", { path: pendingImportPath, profileName: importProfileName.trim() });
+      await invoke("import_config", { path: pendingImportPath, profileName: name.trim() });
     } catch (e) {
       console.error("Import failed:", e);
     }
     setShowImportNameModal(false);
     setPendingImportPath(null);
-  }, [pendingImportPath, importProfileName]);
+  }, [pendingImportPath]);
 
   const handleLoadConfigFile = async () => {
     const path = await open({
@@ -450,9 +306,9 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
           onOpenSettings={() => setShowSettings(true)}
         />
         <div
-          onPointerDown={handleSidebarResizeStart}
-          onPointerMove={handleSidebarResizeMove}
-          onPointerUp={handleSidebarResizeEnd}
+          onPointerDown={onResizeStart}
+          onPointerMove={onResizeMove}
+          onPointerUp={onResizeEnd}
           className="w-1 shrink-0 cursor-col-resize hover:bg-blue-400/40 active:bg-blue-400/60 transition-colors"
         />
       </div>
@@ -591,24 +447,11 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
       )}
 
       {showImportNameModal && (
-        <ModalShell onClose={() => setShowImportNameModal(false)} zClassName="z-[60]">
-          <div className="w-full max-w-sm mx-4 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col gap-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t("save_as_profile")}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{t("import_profile_desc")}</p>
-            <input
-              type="text"
-              value={importProfileName}
-              onChange={(e) => setImportProfileName(e.target.value)}
-              placeholder={t("profile_name")}
-              autoFocus
-              className="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowImportNameModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">{t("cancel")}</button>
-              <button onClick={confirmImport} disabled={!importProfileName.trim()} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-30 transition-colors cursor-pointer">{t("save")}</button>
-            </div>
-          </div>
-        </ModalShell>
+        <ImportNameModal
+          initialName={importInitialName}
+          onConfirm={confirmImport}
+          onClose={() => setShowImportNameModal(false)}
+        />
       )}
 
       {showCommandPalette && config && (
