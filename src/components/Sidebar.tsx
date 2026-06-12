@@ -6,6 +6,7 @@ import { getOrderedPinnedEntries, pinnedEntryId, pinnedEntryLabel, type PinnedEn
 import { useI18n } from "../i18n";
 import { usePointerReorder } from "../hooks/usePointerReorder";
 import { MenuSurface } from "./MenuSurface";
+import { FolderIcon, PencilIcon, StarIcon, TrashIcon } from "./icons";
 
 interface SidebarProps {
   readonly items: readonly DashboardItem[];
@@ -79,7 +80,7 @@ function SidebarContextMenu({
         {isPinned ? t("unpin") : t("pin")}
       </button>
       <button onClick={() => { onRename(); onClose(); }} className={`${btn} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}>
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+        <PencilIcon className="w-4 h-4 text-gray-400" />
         {t("rename")}
       </button>
       {onChangeColor && (
@@ -90,7 +91,7 @@ function SidebarContextMenu({
       )}
       <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
       <button onClick={() => { onDelete(); onClose(); }} className={`${btn} text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}>
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        <TrashIcon className="w-4 h-4" />
         {t("delete")}
       </button>
     </MenuSurface>
@@ -296,7 +297,7 @@ export function Sidebar({
         className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
           showFavoritesOnly ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
         }`}>
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill={showFavoritesOnly ? "currentColor" : "none"} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+        <StarIcon className="w-3.5 h-3.5" filled={showFavoritesOnly} />
         <span className="flex-1">{t("favorites")}</span>
         <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{items.filter((i) => i.favorite).length}</span>
       </button>
@@ -343,7 +344,7 @@ export function Sidebar({
                   isSelected ? selectedClass : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
                 } ${pinDrag.isDragSource(i) ? "opacity-40" : ""} ${pinDrag.isDropTarget(i) ? `ring-2 ${ringClass} ring-offset-1 dark:ring-offset-gray-900 rounded-md` : ""}`}>
                 {entry.kind === "category" ? (
-                  <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                  <FolderIcon className="w-3 h-3 shrink-0 text-purple-500" />
                 ) : (
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.tag.color }} />
                 )}
@@ -388,7 +389,7 @@ export function Sidebar({
                 className={`flex items-center gap-2 text-left px-3 py-1.5 rounded-md text-sm transition-colors select-none cursor-grab active:cursor-grabbing ${
                   selectedCategory === cat.id ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
                 } ${catDrag.isDragSource(i) ? "opacity-40" : ""} ${catDrag.isDropTarget(i) ? "ring-2 ring-purple-400 ring-offset-1 dark:ring-offset-gray-900 rounded-md" : ""}`}>
-                <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                <FolderIcon className="w-3 h-3 shrink-0 text-purple-500" />
                 <span className="flex-1 truncate">{cat.label}</span>
                 <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{catCounts.get(cat.id) ?? 0}</span>
               </div>

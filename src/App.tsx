@@ -21,6 +21,7 @@ import { I18nProvider, useI18n } from "./i18n";
 import type { Locale } from "./i18n";
 import { DashboardOverview } from "./components/DashboardOverview";
 import type { DashboardItem, TagDef, Category, CardSize, ViewMode, PageView } from "./types";
+import { BoltIcon } from "./components/icons";
 
 export default function App() {
   // useConfig() はアプリ全体でこの1回のみ。ConfigContext 経由で共有する（Phase 2-1）
@@ -478,9 +479,7 @@ function AppContent({ locale, onChangeLocale }: { readonly locale: Locale; reado
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors cursor-pointer shrink-0 bg-amber-500 hover:bg-amber-600 border-amber-500 text-white disabled:opacity-30 disabled:cursor-default"
                 title={`${t("open_all")} ${openAllTargets.length}`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+                <BoltIcon className="w-4 h-4" />
                 {t("open_all")} ({openAllTargets.length})
                 <kbd className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-white/20 border border-white/30">⌘O</kbd>
               </button>

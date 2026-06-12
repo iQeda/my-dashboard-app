@@ -5,6 +5,7 @@ import { useI18n } from "../i18n";
 import { getOrderedPinnedEntries } from "../utils/pinned";
 import { MenuSurface } from "./MenuSurface";
 import { resolveRecentItems } from "../utils/recent";
+import { FolderIcon } from "./icons";
 
 interface DashboardOverviewProps {
   readonly items: readonly DashboardItem[];
@@ -117,7 +118,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                     <button key={entry.cat.id} onClick={() => onSelectCategory(entry.cat.id)}
                       onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: entry.cat.id, pinned: true, x: e.clientX, y: e.clientY }); }}
                       className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer">
-                      <svg className="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                      <FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />
                       <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{entry.cat.label}</span>
                       <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
                     </button>
@@ -153,9 +154,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
                 onContextMenu={(e) => { e.preventDefault(); setPinMenu({ kind: "category", id: category.id, pinned: false, x: e.clientX, y: e.clientY }); }}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/70 dark:bg-white/8 border border-gray-200 dark:border-white/10 hover:shadow-md hover:scale-[1.03] hover:border-blue-300 dark:hover:border-blue-500/40 transition-all cursor-pointer"
               >
-                <svg className="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
+                <FolderIcon className="w-4 h-4 text-purple-500 shrink-0" />
                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{category.label}</span>
                 <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
               </button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { useI18n } from "../i18n";
+import { XIcon } from "./icons";
 
 interface UpdateNotificationProps {
   readonly dismissedVersion?: string;
@@ -55,9 +56,7 @@ export function UpdateNotification({ dismissedVersion, onDismiss }: UpdateNotifi
           onClick={() => { onDismiss(version); setStatus("dismissed"); }}
           className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <XIcon className="w-4 h-4" />
         </button>
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400">
