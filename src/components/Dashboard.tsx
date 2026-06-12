@@ -40,7 +40,9 @@ interface GroupedItems {
   readonly items: readonly DashboardItem[];
 }
 
-function useGroupedItems(items: readonly DashboardItem[], categoryList: readonly Category[], uncategorizedLabel: string): readonly GroupedItems[] {
+// TODO(Phase 3): src/utils/groupItems.ts へ抽出予定（テスト用に暫定 export）
+// eslint-disable-next-line react-refresh/only-export-components
+export function useGroupedItems(items: readonly DashboardItem[], categoryList: readonly Category[], uncategorizedLabel: string): readonly GroupedItems[] {
   return useMemo(() => {
     const hasAnyCategory = items.some((i) => i.category);
     if (!hasAnyCategory) return [{ categoryId: "", label: "", items }];

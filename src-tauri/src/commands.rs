@@ -360,3 +360,87 @@ pub fn load_config_from_file(path: String) -> Result<AppConfig, String> {
 
     Ok(config)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::AppConfig;
+
+    /// 実 config.json 相当のフィクスチャ（全フィールド入り）。
+    /// Phase 6 の serde rename_all 変更に対する安全網:
+    /// deserialize -> serialize で JSON 値が一致すること（フィールド名・形式の不変条件）。
+    const FULL_CONFIG: &str = r#"{
+        "items": [
+            {
+                "id": "alpha",
+                "name": "Alpha",
+                "type": "app",
+                "target": "Alpha.app",
+                "tags": ["work"],
+                "icon": "A",
+                "favorite": true,
+                "category": "dev",
+                "description": "desc",
+                "excludeFromOpenAll": true
+            },
+            {
+                "id": "beta",
+                "name": "Beta",
+                "type": "url",
+                "target": "https://example.com",
+                "tags": []
+            }
+        ],
+        "tagDefs": [
+            { "id": "work", "label": "Work", "color": "blue", "pinned": true },
+            { "id": "play", "label": "Play", "color": "red" }
+        ],
+        "categoryList": [
+            { "id": "dev", "label": "Development", "pinned": true },
+            { "id": "media", "label": "Media" }
+        ],
+        "viewMode": "card",
+        "cardSize": "md",
+        "emojiHistory": ["A", "B"],
+        "locale": "ja",
+        "sidebarWidth": 240.5,
+        "recentAccess": [{ "id": "alpha", "at": 1718000000000.0 }],
+        "globalShortcut": "Cmd+Shift+Space",
+        "sidebarCategoriesOpen": true,
+        "sidebarTagsOpen": false,
+        "combinedFilter": true,
+        "multiTagMode": false,
+        "pinnedOrder": ["work", "dev"],
+        "hiddenProfiles": ["sample"],
+        "dismissedUpdateVersion": "0.13.0"
+    }"#;
+
+    const MINIMAL_CONFIG: &str = r#"{ "items": [], "tagDefs": [] }"#;
+
+    fn roundtrip(json: &str) -> (serde_json::Value, serde_json::Value) {
+        let parsed: AppConfig = serde_json::from_str(json).expect("deserialize");
+        let serialized = serde_json::to_string(&parsed).expect("serialize");
+        (
+            serde_json::from_str(json).expect("input as value"),
+            serde_json::from_str(&serialized).expect("output as value"),
+        )
+    }
+
+    #[test]
+    fn full_config_roundtrip_preserves_all_fields() {
+        let (input, output) = roundtrip(FULL_CONFIG);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn minimal_config_roundtrip_does_not_invent_fields() {
+        let (input, output) = roundtrip(MINIMAL_CONFIG);
+        assert_eq!(input, output);
+    }
+
+    #[test]
+    fn optional_fields_are_skipped_when_absent() {
+        let parsed: AppConfig = serde_json::from_str(MINIMAL_CONFIG).expect("deserialize");
+        let serialized = serde_json::to_string(&parsed).expect("serialize");
+        assert_eq!(serialized, r#"{"items":[],"tagDefs":[]}"#);
+    }
+}
