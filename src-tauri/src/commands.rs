@@ -3,7 +3,13 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+// .map_err(estr) の定型を集約（エラー文字列の出力は従来と同一）
+pub(crate) fn estr(e: impl std::fmt::Display) -> String {
+    e.to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DashboardItem {
     pub id: String,
     pub name: String,
@@ -19,7 +25,7 @@ pub struct DashboardItem {
     pub category: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(rename = "excludeFromOpenAll", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub exclude_from_open_all: Option<bool>,
 }
 
@@ -41,39 +47,41 @@ pub struct Category {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppConfig {
     pub items: Vec<DashboardItem>,
-    #[serde(rename = "tagDefs")]
     pub tag_defs: Vec<TagDef>,
-    #[serde(rename = "categoryList", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub category_list: Option<Vec<Category>>,
-    #[serde(rename = "viewMode", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub view_mode: Option<String>,
-    #[serde(rename = "cardSize", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub card_size: Option<String>,
-    #[serde(rename = "emojiHistory", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub emoji_history: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
-    #[serde(rename = "sidebarWidth", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sidebar_width: Option<f64>,
-    #[serde(rename = "recentAccess", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub recent_access: Option<Vec<RecentAccessEntry>>,
-    #[serde(rename = "globalShortcut", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub global_shortcut: Option<String>,
-    #[serde(rename = "sidebarCategoriesOpen", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sidebar_categories_open: Option<bool>,
-    #[serde(rename = "sidebarTagsOpen", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sidebar_tags_open: Option<bool>,
-    #[serde(rename = "combinedFilter", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub combined_filter: Option<bool>,
-    #[serde(rename = "multiTagMode", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub multi_tag_mode: Option<bool>,
-    #[serde(rename = "pinnedOrder", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pinned_order: Option<Vec<String>>,
-    #[serde(rename = "hiddenProfiles", skip_serializing_if = "Option::is_none")]
+    // フロントエンドでは未使用だが、typed struct から消すと既存 config.json の
+    // 値が次回保存で消失するため温存（Phase 1 の注記参照）
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub hidden_profiles: Option<Vec<String>>,
-    #[serde(rename = "dismissedUpdateVersion", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dismissed_update_version: Option<String>,
 }
 
@@ -105,28 +113,38 @@ fn local_config_dir() -> Option<PathBuf> {
     Some(config_dir)
 }
 
-fn config_path() -> PathBuf {
-    if let Some(icloud_dir) = icloud_config_dir() {
+// (config ディレクトリ, アクティブ config.json) を一括解決する。
+// 優先順位: iCloud の config.json > ローカルの config.json > iCloud 新規 > ローカル新規。
+// ディレクトリは iCloud があれば常に iCloud 側（プロファイル・バックアップの置き場所）。
+// OnceLock 等でのメモ化はしない（iCloud の出現/消失への追従が現仕様）。
+fn resolve_config() -> (PathBuf, PathBuf) {
+    let icloud = icloud_config_dir();
+    let local = local_config_dir();
+
+    let dir = icloud
+        .clone()
+        .or_else(|| local.clone())
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    if let Some(icloud_dir) = &icloud {
         let icloud_path = icloud_dir.join("config.json");
         if icloud_path.exists() {
-            return icloud_path;
+            return (dir, icloud_path);
         }
     }
-
-    if let Some(local_dir) = local_config_dir() {
+    if let Some(local_dir) = &local {
         let local_path = local_dir.join("config.json");
         if local_path.exists() {
-            return local_path;
+            return (dir, local_path);
         }
     }
-
-    if let Some(icloud_dir) = icloud_config_dir() {
-        return icloud_dir.join("config.json");
+    if let Some(icloud_dir) = &icloud {
+        return (dir.clone(), icloud_dir.join("config.json"));
     }
-
-    local_config_dir()
+    let path = local
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("config.json")
+        .join("config.json");
+    (dir, path)
 }
 
 fn default_config() -> AppConfig {
@@ -134,12 +152,27 @@ fn default_config() -> AppConfig {
     serde_json::from_str(default_json).expect("default config should be valid JSON")
 }
 
+// config ファイルの読み取り + パース。raw 文字列も返す
+// （load_config_from_file は元バイトをそのまま書き戻すため）
+fn read_config_file(path: &PathBuf) -> Result<(String, AppConfig), String> {
+    let content = fs::read_to_string(path).map_err(estr)?;
+    let config: AppConfig = serde_json::from_str(&content).map_err(estr)?;
+    Ok((content, config))
+}
+
+fn save_config_to_path(config: &AppConfig, path: &PathBuf) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(estr)?;
+    }
+    let json = serde_json::to_string_pretty(config).map_err(estr)?;
+    fs::write(path, json).map_err(estr)
+}
+
 #[tauri::command]
 pub fn load_config() -> Result<AppConfig, String> {
-    let path = config_path();
+    let (dir, path) = resolve_config();
     let config = if path.exists() {
-        let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&content).map_err(|e| e.to_string())?
+        read_config_file(&path)?.1
     } else {
         let config = default_config();
         let _ = save_config_to_path(&config, &path);
@@ -147,7 +180,7 @@ pub fn load_config() -> Result<AppConfig, String> {
     };
 
     // Ensure sample profile exists
-    let sample_path = config_dir().join("default-config.json");
+    let sample_path = dir.join("default-config.json");
     if !sample_path.exists() {
         let _ = save_config_to_path(&default_config(), &sample_path);
     }
@@ -157,16 +190,8 @@ pub fn load_config() -> Result<AppConfig, String> {
 
 #[tauri::command]
 pub fn save_config(config: AppConfig) -> Result<(), String> {
-    let path = config_path();
+    let (_, path) = resolve_config();
     save_config_to_path(&config, &path)
-}
-
-fn save_config_to_path(config: &AppConfig, path: &PathBuf) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    let json = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
-    fs::write(path, json).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -180,7 +205,7 @@ pub fn launch_app(name: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_config_path() -> String {
-    config_path().to_string_lossy().to_string()
+    resolve_config().1.to_string_lossy().to_string()
 }
 
 #[tauri::command]
@@ -244,41 +269,33 @@ fn collect_apps(dir: &PathBuf, apps: &mut Vec<InstalledApp>, depth: u8) {
     }
 }
 
-fn config_dir() -> PathBuf {
-    if let Some(d) = icloud_config_dir() { return d; }
-    local_config_dir().unwrap_or_else(|| PathBuf::from("."))
-}
-
 #[tauri::command]
 pub fn export_config(path: String) -> Result<(), String> {
     let config = load_config()?;
-    let json = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
-    fs::write(&path, json).map_err(|e| e.to_string())
+    save_config_to_path(&config, &PathBuf::from(path))
 }
 
 #[tauri::command]
 pub fn import_config(path: String, profile_name: String) -> Result<AppConfig, String> {
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let config: AppConfig =
-        serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    let (_, config) = read_config_file(&PathBuf::from(path))?;
 
     let safe_name = profile_name
         .chars()
         .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
         .collect::<String>();
     let filename = format!("config-{}.json", safe_name);
-    let dest = config_dir().join(&filename);
+    let (dir, _) = resolve_config();
+    let dest = dir.join(&filename);
 
-    let json = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
-    fs::write(&dest, json).map_err(|e| e.to_string())?;
+    save_config_to_path(&config, &dest)?;
 
     Ok(config)
 }
 
 fn backup_config() {
-    let active = config_path();
+    let (dir, active) = resolve_config();
     if !active.exists() { return; }
-    let backup_dir = config_dir().join("backups");
+    let backup_dir = dir.join("backups");
     let _ = fs::create_dir_all(&backup_dir);
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -290,18 +307,17 @@ fn backup_config() {
 
 #[tauri::command]
 pub fn load_config_from_file(path: String) -> Result<AppConfig, String> {
-    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let config: AppConfig =
-        serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    // 元バイトをそのまま書き戻すため raw 文字列も受け取る
+    let (content, config) = read_config_file(&PathBuf::from(path))?;
 
     backup_config();
 
     // Save as active config
-    let active_dest = config_path();
+    let (_, active_dest) = resolve_config();
     if let Some(parent) = active_dest.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        fs::create_dir_all(parent).map_err(estr)?;
     }
-    fs::write(&active_dest, &content).map_err(|e| e.to_string())?;
+    fs::write(&active_dest, &content).map_err(estr)?;
 
     Ok(config)
 }

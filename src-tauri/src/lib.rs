@@ -21,7 +21,7 @@ fn register_shortcut_inner(app: &tauri::AppHandle, shortcut_str: &str) -> Result
         }
         let _ = app_handle.emit("show-command-palette", ());
     })
-    .map_err(|e| e.to_string())
+    .map_err(commands::estr)
 }
 
 #[tauri::command]
@@ -33,7 +33,7 @@ fn register_shortcut(app: tauri::AppHandle, shortcut: String) -> Result<(), Stri
 fn unregister_all_shortcuts(app: tauri::AppHandle) -> Result<(), String> {
     app.global_shortcut()
         .unregister_all()
-        .map_err(|e| e.to_string())
+        .map_err(commands::estr)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
