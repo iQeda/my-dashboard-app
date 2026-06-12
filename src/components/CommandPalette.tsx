@@ -3,6 +3,7 @@ import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../type
 import { useI18n } from "../i18n";
 import { itemIcon } from "../constants";
 import { resolveRecentItems } from "../utils/recent";
+import { BoltIcon, FolderIcon, PencilIcon } from "./icons";
 
 interface CommandPaletteProps {
   readonly items: readonly DashboardItem[];
@@ -208,7 +209,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
                     onClick={() => executeResult(result)}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
                   >
-                    <svg className="w-3 h-3 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                    <FolderIcon className="w-3 h-3 shrink-0 text-purple-500" />
                     <span className="flex-1 text-gray-800 dark:text-gray-200">{cat.label}</span>
                     <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">{t("category")}</span>
                   </button>
@@ -218,9 +219,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
                       className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer shrink-0"
                       title={`${t("open_all")} (${targets.length})`}
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
+                      <BoltIcon className="w-3 h-3" />
                       {targets.length}
                     </button>
                   )}
@@ -255,9 +254,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
                       className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer shrink-0"
                       title={`${t("open_all")} (${targets.length})`}
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
+                      <BoltIcon className="w-3 h-3" />
                       {targets.length}
                     </button>
                   )}
@@ -292,9 +289,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
                   className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
                   title={t("edit")}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
+                  <PencilIcon className="w-3.5 h-3.5" />
                 </button>
               </div>
             );

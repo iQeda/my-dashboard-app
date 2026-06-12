@@ -1,6 +1,7 @@
 import type { TagDef, Category } from "../types";
 import type { TypeFilter } from "../hooks/useFilter";
 import { useI18n } from "../i18n";
+import { XIcon } from "./icons";
 
 interface ActiveFiltersProps {
   readonly selectedTags: ReadonlySet<string>;
@@ -86,9 +87,7 @@ export function ActiveFilters({
           className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 cursor-pointer hover:opacity-80 transition-opacity"
         >
           {t("favorites")}
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <XIcon className="w-3 h-3" />
         </button>
       )}
       {selectedCat && (
@@ -97,9 +96,7 @@ export function ActiveFilters({
           className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 cursor-pointer hover:opacity-80 transition-opacity"
         >
           {selectedCat.label}
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <XIcon className="w-3 h-3" />
         </button>
       )}
       {selectedTagDefs.map((tag) => (
@@ -110,9 +107,7 @@ export function ActiveFilters({
           style={{ backgroundColor: tag.color }}
         >
           {tag.label}
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <XIcon className="w-3 h-3" />
         </button>
       ))}
       {typeFilter !== "all" && (
@@ -121,9 +116,7 @@ export function ActiveFilters({
           className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 cursor-pointer hover:opacity-80 transition-opacity"
         >
           {typeFilter === "app" ? t("app") : t("web")}
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <XIcon className="w-3 h-3" />
         </button>
       )}
     </div>
