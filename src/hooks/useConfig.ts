@@ -1,6 +1,51 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { AppConfig, DashboardItem, TagDef, Category, ViewMode, CardSize, RecentAccessEntry } from "../types";
+import type { AppConfig, DashboardItem, TagDef, Category, ViewPrefs, RecentAccessEntry } from "../types";
+import type { Locale } from "../i18n";
+
+const updateEmojiHistory = (current: AppConfig, emoji?: string): readonly string[] | undefined => {
+  if (!emoji) return current.emojiHistory;
+  const prev = current.emojiHistory ?? [];
+  return [emoji, ...prev.filter((e) => e !== emoji)].slice(0, 20);
+};
+
+// リネーム時のスラグ再生成・idChanged 判定・pinnedOrder リマップ・pin/unpin 追従を
+// TagDef / Category 共通で行う純粋ヘルパー（items 参照の同期は呼び出し側の責務）
+function renameAndRepin<T extends { readonly id: string; readonly label: string; readonly pinned?: boolean }>(
+  defs: readonly T[],
+  pinnedOrder: readonly string[],
+  id: string,
+  updates: NoInfer<Partial<T>>,
+): { readonly defs: readonly T[]; readonly pinnedOrder: readonly string[]; readonly newId: string; readonly idChanged: boolean } {
+  // Generate new ID from new label if label changed
+  const newId = updates.label
+    ? updates.label.toLowerCase().replace(/\s+/g, "-")
+    : id;
+  const idChanged = Boolean(newId !== id && updates.label);
+  const effectiveId = idChanged ? newId : id;
+  // Update pinnedOrder atomically when pinned changes
+  let order = pinnedOrder;
+  if (idChanged) {
+    order = order.map((pid) => (pid === id ? newId : pid));
+  }
+  if (updates.pinned !== undefined) {
+    const oldDef = defs.find((d) => d.id === id);
+    if (oldDef && !oldDef.pinned && updates.pinned) {
+      order = [...order, effectiveId];
+    }
+    if (oldDef && oldDef.pinned && !updates.pinned) {
+      order = order.filter((pid) => pid !== effectiveId);
+    }
+  }
+  return {
+    defs: defs.map((d) =>
+      d.id === id ? { ...d, ...updates, ...(idChanged ? { id: newId } : {}) } : d,
+    ),
+    pinnedOrder: order,
+    newId,
+    idChanged,
+  };
+}
 
 export function useConfig() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -36,275 +81,178 @@ export function useConfig() {
     }
   }, []);
 
-  const updateEmojiHistory = (current: AppConfig, emoji?: string): readonly string[] | undefined => {
-    if (!emoji) return current.emojiHistory;
-    const prev = current.emojiHistory ?? [];
-    return [emoji, ...prev.filter((e) => e !== emoji)].slice(0, 20);
-  };
-
-  const addItem = useCallback(
-    async (item: DashboardItem, newTagDefs?: readonly TagDef[], newCategoryList?: readonly Category[]) => {
+  // SKILL.md #6 の不変条件をここに閉じ込める:
+  // 「最新 state を configRef で読み、1アクション = 1 saveConfig」
+  const mutate = useCallback(
+    async (update: (current: AppConfig) => AppConfig | null) => {
       const current = configRef.current;
       if (!current) return;
-      const newConfig: AppConfig = {
-        ...current,
-        items: [...current.items, item],
-        tagDefs: newTagDefs ?? current.tagDefs,
-        categoryList: newCategoryList ?? current.categoryList,
-        emojiHistory: updateEmojiHistory(current, item.icon),
-      };
-      await saveConfig(newConfig);
+      const next = update(current);
+      if (next) await saveConfig(next);
     },
     [saveConfig],
+  );
+
+  const addItem = useCallback(
+    (item: DashboardItem, newTagDefs?: readonly TagDef[], newCategoryList?: readonly Category[]) =>
+      mutate((c) => ({
+        ...c,
+        items: [...c.items, item],
+        tagDefs: newTagDefs ?? c.tagDefs,
+        categoryList: newCategoryList ?? c.categoryList,
+        emojiHistory: updateEmojiHistory(c, item.icon),
+      })),
+    [mutate],
   );
 
   const updateItem = useCallback(
-    async (item: DashboardItem, newTagDefs?: readonly TagDef[], newCategoryList?: readonly Category[]) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = {
-        ...current,
-        items: current.items.map((i) => (i.id === item.id ? item : i)),
-        tagDefs: newTagDefs ?? current.tagDefs,
-        categoryList: newCategoryList ?? current.categoryList,
-        emojiHistory: updateEmojiHistory(current, item.icon),
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (item: DashboardItem, newTagDefs?: readonly TagDef[], newCategoryList?: readonly Category[]) =>
+      mutate((c) => ({
+        ...c,
+        items: c.items.map((i) => (i.id === item.id ? item : i)),
+        tagDefs: newTagDefs ?? c.tagDefs,
+        categoryList: newCategoryList ?? c.categoryList,
+        emojiHistory: updateEmojiHistory(c, item.icon),
+      })),
+    [mutate],
   );
 
   const duplicateItem = useCallback(
-    async (id: string) => {
-      const current = configRef.current;
-      if (!current) return;
-      const source = current.items.find((i) => i.id === id);
-      if (!source) return;
-      const newId = `${source.id}-copy-${Date.now()}`;
-      const copy: DashboardItem = {
-        ...source,
-        id: newId,
-        name: `${source.name} (Copy)`,
-        favorite: undefined,
-      };
-      const newConfig: AppConfig = {
-        ...current,
-        items: [...current.items, copy],
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (id: string) =>
+      mutate((c) => {
+        const source = c.items.find((i) => i.id === id);
+        if (!source) return null;
+        const copy: DashboardItem = {
+          ...source,
+          id: `${source.id}-copy-${Date.now()}`,
+          name: `${source.name} (Copy)`,
+          favorite: undefined,
+        };
+        return { ...c, items: [...c.items, copy] };
+      }),
+    [mutate],
   );
 
   const deleteItem = useCallback(
-    async (id: string) => {
-      const current = configRef.current;
-      if (!current) return;
-      let removed = false;
-      const newConfig: AppConfig = {
-        ...current,
-        items: current.items.filter((i) => {
-          if (!removed && i.id === id) { removed = true; return false; }
-          return true;
-        }),
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (id: string) =>
+      mutate((c) => {
+        let removed = false;
+        return {
+          ...c,
+          items: c.items.filter((i) => {
+            if (!removed && i.id === id) { removed = true; return false; }
+            return true;
+          }),
+        };
+      }),
+    [mutate],
   );
 
   const toggleFavorite = useCallback(
-    async (id: string) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = {
-        ...current,
-        items: current.items.map((i) =>
-          i.id === id ? { ...i, favorite: !i.favorite } : i,
-        ),
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (id: string) =>
+      mutate((c) => ({
+        ...c,
+        items: c.items.map((i) => (i.id === id ? { ...i, favorite: !i.favorite } : i)),
+      })),
+    [mutate],
   );
 
   const reorderTagDefs = useCallback(
-    async (tagDefs: readonly TagDef[]) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = { ...current, tagDefs };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (tagDefs: readonly TagDef[]) => mutate((c) => ({ ...c, tagDefs })),
+    [mutate],
   );
 
   const updateTagDef = useCallback(
-    async (id: string, updates: Partial<Pick<TagDef, "label" | "color" | "pinned">>) => {
-      const current = configRef.current;
-      if (!current) return;
-      // Generate new ID from new label if label changed
-      const newId = updates.label
-        ? updates.label.toLowerCase().replace(/\s+/g, "-")
-        : id;
-      const idChanged = newId !== id && updates.label;
-      const effectiveId = idChanged ? newId : id;
-      // Update pinnedOrder atomically when pinned changes
-      let pinnedOrder = (current.pinnedOrder ?? []);
-      if (idChanged) {
-        pinnedOrder = pinnedOrder.map((pid) => (pid === id ? newId : pid));
-      }
-      if (updates.pinned !== undefined) {
-        const oldTag = current.tagDefs.find((t) => t.id === id);
-        if (oldTag && !oldTag.pinned && updates.pinned) {
-          pinnedOrder = [...pinnedOrder, effectiveId];
-        }
-        if (oldTag && oldTag.pinned && !updates.pinned) {
-          pinnedOrder = pinnedOrder.filter((pid) => pid !== effectiveId);
-        }
-      }
-      const newConfig: AppConfig = {
-        ...current,
-        tagDefs: current.tagDefs.map((c) =>
-          c.id === id ? { ...c, ...updates, ...(idChanged ? { id: newId } : {}) } : c,
-        ),
-        pinnedOrder,
-        ...(idChanged ? {
-          items: current.items.map((item) => ({
-            ...item,
-            tags: item.tags.map((t) => (t === id ? newId : t)),
-          })),
-        } : {}),
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (id: string, updates: Partial<Pick<TagDef, "label" | "color" | "pinned">>) =>
+      mutate((c) => {
+        const r = renameAndRepin(c.tagDefs, c.pinnedOrder ?? [], id, updates);
+        return {
+          ...c,
+          tagDefs: r.defs,
+          pinnedOrder: r.pinnedOrder,
+          ...(r.idChanged ? {
+            items: c.items.map((item) => ({
+              ...item,
+              tags: item.tags.map((t) => (t === id ? r.newId : t)),
+            })),
+          } : {}),
+        };
+      }),
+    [mutate],
   );
 
   const deleteTagDef = useCallback(
-    async (id: string) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = {
-        ...current,
-        tagDefs: current.tagDefs.filter((c) => c.id !== id),
-        items: current.items.map((item) => ({
+    (id: string) =>
+      mutate((c) => ({
+        ...c,
+        tagDefs: c.tagDefs.filter((d) => d.id !== id),
+        items: c.items.map((item) => ({
           ...item,
           tags: item.tags.filter((t) => t !== id),
         })),
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+      })),
+    [mutate],
   );
 
   const updateCategoryDef = useCallback(
-    async (id: string, updates: Partial<Pick<Category, "label" | "pinned">>) => {
-      const current = configRef.current;
-      if (!current) return;
-      // Generate new ID from new label if label changed
-      const newId = updates.label
-        ? updates.label.toLowerCase().replace(/\s+/g, "-")
-        : id;
-      const idChanged = newId !== id && updates.label;
-      const effectiveId = idChanged ? newId : id;
-      // Update pinnedOrder atomically when pinned changes
-      let pinnedOrder = (current.pinnedOrder ?? []);
-      if (idChanged) {
-        pinnedOrder = pinnedOrder.map((pid) => (pid === id ? newId : pid));
-      }
-      if (updates.pinned !== undefined) {
-        const oldCat = (current.categoryList ?? []).find((c) => c.id === id);
-        if (oldCat && !oldCat.pinned && updates.pinned) {
-          pinnedOrder = [...pinnedOrder, effectiveId];
-        }
-        if (oldCat && oldCat.pinned && !updates.pinned) {
-          pinnedOrder = pinnedOrder.filter((pid) => pid !== effectiveId);
-        }
-      }
-      const newConfig: AppConfig = {
-        ...current,
-        categoryList: (current.categoryList ?? []).map((c) =>
-          c.id === id ? { ...c, ...updates, ...(idChanged ? { id: newId } : {}) } : c,
-        ),
-        pinnedOrder,
-        ...(idChanged ? {
-          items: current.items.map((item) => ({
-            ...item,
-            category: item.category === id ? newId : item.category,
-          })),
-        } : {}),
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (id: string, updates: Partial<Pick<Category, "label" | "pinned">>) =>
+      mutate((c) => {
+        const r = renameAndRepin(c.categoryList ?? [], c.pinnedOrder ?? [], id, updates);
+        return {
+          ...c,
+          categoryList: r.defs,
+          pinnedOrder: r.pinnedOrder,
+          ...(r.idChanged ? {
+            items: c.items.map((item) => ({
+              ...item,
+              category: item.category === id ? r.newId : item.category,
+            })),
+          } : {}),
+        };
+      }),
+    [mutate],
   );
 
   const deleteCategoryDef = useCallback(
-    async (id: string) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = {
-        ...current,
-        categoryList: (current.categoryList ?? []).filter((c) => c.id !== id),
-        items: current.items.map((item) =>
+    (id: string) =>
+      mutate((c) => ({
+        ...c,
+        categoryList: (c.categoryList ?? []).filter((d) => d.id !== id),
+        items: c.items.map((item) =>
           item.category === id ? { ...item, category: undefined } : item,
         ),
-      };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+      })),
+    [mutate],
   );
 
   const reorderCategoryList = useCallback(
-    async (categoryList: readonly Category[]) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = { ...current, categoryList };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (categoryList: readonly Category[]) => mutate((c) => ({ ...c, categoryList })),
+    [mutate],
   );
 
   const updateLocale = useCallback(
-    async (locale: string) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = { ...current, locale };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (locale: Locale) => mutate((c) => ({ ...c, locale })),
+    [mutate],
   );
 
   const updateViewPrefs = useCallback(
-    async (prefs: { viewMode?: ViewMode; cardSize?: CardSize; sidebarWidth?: number; sidebarCategoriesOpen?: boolean; sidebarTagsOpen?: boolean; combinedFilter?: boolean; multiTagMode?: boolean; pinnedOrder?: readonly string[]; dismissedUpdateVersion?: string }) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = { ...current, ...prefs };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (prefs: ViewPrefs) => mutate((c) => ({ ...c, ...prefs })),
+    [mutate],
   );
 
   const updateGlobalShortcut = useCallback(
-    async (globalShortcut: string | undefined) => {
-      const current = configRef.current;
-      if (!current) return;
-      const newConfig: AppConfig = { ...current, globalShortcut };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (globalShortcut: string | undefined) => mutate((c) => ({ ...c, globalShortcut })),
+    [mutate],
   );
 
   const recordAccess = useCallback(
-    async (itemId: string) => {
-      const current = configRef.current;
-      if (!current) return;
-      const prev = (current.recentAccess ?? []).filter((e) => e.id !== itemId);
-      const next: readonly RecentAccessEntry[] = [{ id: itemId, at: Date.now() }, ...prev].slice(0, 50);
-      const newConfig: AppConfig = { ...current, recentAccess: next };
-      await saveConfig(newConfig);
-    },
-    [saveConfig],
+    (itemId: string) =>
+      mutate((c) => {
+        const prev = (c.recentAccess ?? []).filter((e) => e.id !== itemId);
+        const next: readonly RecentAccessEntry[] = [{ id: itemId, at: Date.now() }, ...prev].slice(0, 50);
+        return { ...c, recentAccess: next };
+      }),
+    [mutate],
   );
 
   const reload = loadConfig;
