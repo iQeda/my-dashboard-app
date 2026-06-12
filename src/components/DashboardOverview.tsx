@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../types";
 import { ItemCard } from "./ItemCard";
 import { useI18n } from "../i18n";
+import { getOrderedPinnedEntries } from "../utils/pinned";
+import { resolveRecentItems } from "../utils/recent";
 
 interface DashboardOverviewProps {
   readonly items: readonly DashboardItem[];
@@ -71,10 +73,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
 
   const favoriteItems = items.filter((i) => i.favorite);
 
-  const itemMap = new Map(items.map((i) => [i.id, i]));
-  const recentItems = recentAccess
-    .map((e) => itemMap.get(e.id))
-    .filter((i): i is DashboardItem => i !== undefined);
+  const recentItems = resolveRecentItems(items, recentAccess);
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -115,16 +114,7 @@ export function DashboardOverview({ items, tagDefs, categoryList, recentAccess, 
 
       {/* Pinned */}
       {(() => {
-        const catMap = new Map(categoryList.filter((c) => c.pinned).map((c) => [c.id, c]));
-        const tagMap = new Map(tagDefs.filter((t) => t.pinned).map((t) => [t.id, t]));
-        type PEntry = { kind: "category"; cat: Category } | { kind: "tag"; tag: TagDef };
-        const ordered: PEntry[] = [];
-        for (const id of pinnedOrder) {
-          const cat = catMap.get(id); if (cat) { ordered.push({ kind: "category", cat }); catMap.delete(id); continue; }
-          const tag = tagMap.get(id); if (tag) { ordered.push({ kind: "tag", tag }); tagMap.delete(id); }
-        }
-        for (const cat of catMap.values()) ordered.push({ kind: "category", cat });
-        for (const tag of tagMap.values()) ordered.push({ kind: "tag", tag });
+        const ordered = getOrderedPinnedEntries(categoryList, tagDefs, pinnedOrder);
         if (ordered.length === 0) return null;
         return (
           <section className="mb-8">

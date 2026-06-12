@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { DashboardItem, TagDef, Category } from "../types";
 import { TAG_COLORS } from "../constants";
+import { sortByLabel } from "../utils/labels";
+import { getOrderedPinnedEntries, pinnedEntryId, pinnedEntryLabel, type PinnedEntry } from "../utils/pinned";
 import { useI18n } from "../i18n";
 
 interface SidebarProps {
@@ -320,41 +322,20 @@ export function Sidebar({
   const handleTagClick = useCallback((id: string) => { if (!didMove.current) onToggleTag(id); }, [onToggleTag]);
 
   const handleSortCategories = useCallback((order: "asc" | "desc") => {
-    const sorted = [...categoryList].sort((a, b) => {
-      const cmp = a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
-      return order === "asc" ? cmp : -cmp;
-    });
-    onReorderCategoryList(sorted);
+    onReorderCategoryList(sortByLabel(categoryList, (c) => c.label, order));
     setSortMenu(null);
   }, [categoryList, onReorderCategoryList]);
 
   const handleSortTags = useCallback((order: "asc" | "desc") => {
-    const sorted = [...tagDefs].sort((a, b) => {
-      const cmp = a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
-      return order === "asc" ? cmp : -cmp;
-    });
-    onReorderTagDefs(sorted);
+    onReorderTagDefs(sortByLabel(tagDefs, (d) => d.label, order));
     setSortMenu(null);
   }, [tagDefs, onReorderTagDefs]);
 
   // Pinned items (mixed categories + tags, ordered by pinnedOrder)
-  type PinnedEntry = { readonly kind: "category"; readonly cat: Category } | { readonly kind: "tag"; readonly tag: TagDef };
-  const pinnedItems = useMemo<readonly PinnedEntry[]>(() => {
-    const catMap = new Map(categoryList.filter((c) => c.pinned).map((c) => [c.id, c]));
-    const tagMap = new Map(tagDefs.filter((t) => t.pinned).map((t) => [t.id, t]));
-    const result: PinnedEntry[] = [];
-    // Add items in pinnedOrder first
-    for (const id of pinnedOrder) {
-      const cat = catMap.get(id);
-      if (cat) { result.push({ kind: "category", cat }); catMap.delete(id); continue; }
-      const tag = tagMap.get(id);
-      if (tag) { result.push({ kind: "tag", tag }); tagMap.delete(id); continue; }
-    }
-    // Add any pinned items not in pinnedOrder (newly pinned)
-    for (const cat of catMap.values()) result.push({ kind: "category", cat });
-    for (const tag of tagMap.values()) result.push({ kind: "tag", tag });
-    return result;
-  }, [categoryList, tagDefs, pinnedOrder]);
+  const pinnedItems = useMemo<readonly PinnedEntry[]>(
+    () => getOrderedPinnedEntries(categoryList, tagDefs, pinnedOrder),
+    [categoryList, tagDefs, pinnedOrder],
+  );
 
   // Pinned drag
   const [pinDragIndex, setPinDragIndex] = useState<number | null>(null);
@@ -380,7 +361,7 @@ export function Sidebar({
       const reordered = [...pinnedItems];
       const [moved] = reordered.splice(pinDragIndex, 1);
       reordered.splice(pinOverIndex, 0, moved);
-      onUpdatePinnedOrder(reordered.map((e) => e.kind === "category" ? e.cat.id : e.tag.id));
+      onUpdatePinnedOrder(reordered.map(pinnedEntryId));
     }
     pinIsDragging.current = false; pinDidMove.current = false; setPinDragIndex(null); setPinOverIndex(null);
   }, [pinDragIndex, pinOverIndex, pinnedItems, onUpdatePinnedOrder]);
@@ -392,13 +373,7 @@ export function Sidebar({
   }, [onToggleCategory, onToggleTag]);
 
   const handleSortPinned = useCallback((order: "asc" | "desc") => {
-    const sorted = [...pinnedItems].sort((a, b) => {
-      const labelA = a.kind === "category" ? a.cat.label : a.tag.label;
-      const labelB = b.kind === "category" ? b.cat.label : b.tag.label;
-      const cmp = labelA.localeCompare(labelB, undefined, { sensitivity: "base" });
-      return order === "asc" ? cmp : -cmp;
-    });
-    onUpdatePinnedOrder(sorted.map((e) => e.kind === "category" ? e.cat.id : e.tag.id));
+    onUpdatePinnedOrder(sortByLabel(pinnedItems, pinnedEntryLabel, order).map(pinnedEntryId));
     setSortMenu(null);
   }, [pinnedItems, onUpdatePinnedOrder]);
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { DashboardItem, TagDef, Category, RecentAccessEntry } from "../types";
 import { useI18n } from "../i18n";
+import { itemIcon } from "../constants";
+import { resolveRecentItems } from "../utils/recent";
 
 interface CommandPaletteProps {
   readonly items: readonly DashboardItem[];
@@ -17,10 +19,21 @@ interface CommandPaletteProps {
 
 type Tab = "all" | "recent";
 
-const DEFAULT_ICONS: Record<string, string> = {
-  app: "\uD83D\uDDA5\uFE0F",
-  url: "\uD83C\uDF10",
-};
+type Result =
+  | { kind: "item"; data: DashboardItem }
+  | { kind: "tag"; data: TagDef }
+  | { kind: "category"; data: Category };
+
+// \u30AB\u30C6\u30B4\u30EA / \u30BF\u30B0\u884C\u306E Open All \u5BFE\u8C61\uFF08\u2318O \u3068 \u26A1 \u30DC\u30BF\u30F3\u3067\u5171\u7528\uFF09
+function getOpenAllTargets(result: Result, items: readonly DashboardItem[]): readonly DashboardItem[] {
+  if (result.kind === "category") {
+    return items.filter((it) => it.category === result.data.id && !it.excludeFromOpenAll);
+  }
+  if (result.kind === "tag") {
+    return items.filter((it) => it.tags.includes(result.data.id) && !it.excludeFromOpenAll);
+  }
+  return [];
+}
 
 export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onToggleTag, onToggleCategory, onLaunch, onOpenAll, onEdit, onClose }: CommandPaletteProps) {
   const { t } = useI18n();
@@ -36,18 +49,10 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
   const isComposingRef = useRef(false);
   const lastCompositionEndAtRef = useRef(0);
 
-  type Result =
-    | { kind: "item"; data: DashboardItem }
-    | { kind: "tag"; data: TagDef }
-    | { kind: "category"; data: Category };
-
   const results: Result[] = (() => {
     const q = query.toLowerCase();
     if (activeTab === "recent") {
-      const itemMap = new Map(items.map((i) => [i.id, i]));
-      return recentAccess
-        .map((e) => itemMap.get(e.id))
-        .filter((i): i is DashboardItem => i !== undefined)
+      return resolveRecentItems(items, recentAccess)
         .filter((i) => i.name.toLowerCase().includes(q))
         .map((data) => ({ kind: "item" as const, data }));
     }
@@ -91,13 +96,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
       e.preventDefault();
       e.nativeEvent.stopImmediatePropagation();
       const r = results[selectedIndex];
-      let targets: DashboardItem[] = [];
-      if (r?.kind === "category") {
-        targets = items.filter((it) => it.category === r.data.id && !it.excludeFromOpenAll);
-      }
-      if (r?.kind === "tag") {
-        targets = items.filter((it) => it.tags.includes(r.data.id) && !it.excludeFromOpenAll);
-      }
+      const targets = r ? getOpenAllTargets(r, items) : [];
       if (targets.length === 0) return;
       onOpenAll(targets);
       onClose();
@@ -196,7 +195,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
             const isSelected = i === selectedIndex;
             if (result.kind === "category") {
               const cat = result.data;
-              const targets = items.filter((it) => it.category === cat.id && !it.excludeFromOpenAll);
+              const targets = getOpenAllTargets(result, items);
               return (
                 <div
                   key={`cat-${cat.id}`}
@@ -230,7 +229,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
             }
             if (result.kind === "tag") {
               const cat = result.data;
-              const targets = items.filter((it) => it.tags.includes(cat.id) && !it.excludeFromOpenAll);
+              const targets = getOpenAllTargets(result, items);
               return (
                 <div
                   key={`tag-${cat.id}`}
@@ -278,7 +277,7 @@ export function CommandPalette({ items, tagDefs, categoryList, recentAccess, onT
                   onClick={() => executeResult(result)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
                 >
-                  <span className="text-lg shrink-0">{item.icon ?? DEFAULT_ICONS[item.type] ?? "\uD83D\uDCE6"}</span>
+                  <span className="text-lg shrink-0">{itemIcon(item)}</span>
                   <span className="flex-1 text-gray-800 dark:text-gray-200 truncate">{item.name}</span>
                   <span className={`text-[10px] font-bold uppercase shrink-0 ${
                     item.type === "app"

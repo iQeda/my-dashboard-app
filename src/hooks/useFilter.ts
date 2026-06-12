@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import type { DashboardItem, ItemType, Category, TagDef } from "../types";
+import { sortByLabel } from "../utils/labels";
 
 export type SortOrder = "asc" | "desc";
 export type TypeFilter = "all" | ItemType;
@@ -37,10 +38,7 @@ export function useFilter(items: readonly DashboardItem[], initialPrefs?: { comb
       return matchesTag && matchesCat && matchesSearch && matchesFav && matchesType;
     });
 
-    return [...filtered].sort((a, b) => {
-      const cmp = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-      return sortOrder === "asc" ? cmp : -cmp;
-    });
+    return sortByLabel(filtered, (i) => i.name, sortOrder);
   }, [items, selectedTags, selectedCategory, searchQuery, sortOrder, showFavoritesOnly, typeFilter, multiTagMode, lookups?.categoryList, lookups?.tagDefs]);
 
   const toggleTag = useCallback((tagId: string) => {
